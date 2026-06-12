@@ -7,16 +7,13 @@ import {
   Descriptions,
   message,
   Space,
-  Modal,
-  Row,
-  Col
+  Modal
 } from 'antd'
 import {
   ArrowLeftOutlined,
   CheckOutlined,
   CloseOutlined,
   CheckCircleOutlined,
-  EnvironmentOutlined,
   ClockCircleOutlined,
   UserOutlined
 } from '@ant-design/icons'
@@ -76,11 +73,11 @@ const AppointmentDetail = () => {
   }
 
   const statusInfo = detail ? (APPOINTMENT_STATUS_MAP[detail.status] || { label: detail.status, color: 'default' }) : { label: '-', color: 'default' }
-  const typeInfo = detail ? (APPOINTMENT_TYPE_MAP[detail.type] || { label: detail.type, color: 'default' }) : { label: '-', color: 'default' }
+  const typeInfo = detail ? (APPOINTMENT_TYPE_MAP[detail.service_type] || { label: detail.service_type, color: 'default' }) : { label: '-', color: 'default' }
 
-  const canConfirm = detail?.status === 'pending'
-  const canCancel = detail?.status === 'pending' || detail?.status === 'confirmed'
-  const canComplete = detail?.status === 'confirmed'
+  const canConfirm = detail?.status === 'pending' && user?.role === 'therapist'
+  const canCancel = (detail?.status === 'pending' || detail?.status === 'confirmed') && user?.role === 'disabled'
+  const canComplete = detail?.status === 'confirmed' && user?.role === 'therapist'
 
   return (
     <div>
@@ -110,50 +107,29 @@ const AppointmentDetail = () => {
           <Descriptions.Item label="用户姓名">
             <Space>
               <UserOutlined />
-              {detail?.userName || '-'}
+              {detail?.user_name || '-'}
             </Space>
           </Descriptions.Item>
-          <Descriptions.Item label="康复师">{detail?.therapistName || '-'}</Descriptions.Item>
+          <Descriptions.Item label="康复师">{detail?.therapist_name || '-'}</Descriptions.Item>
           <Descriptions.Item label="预约时间">
             <Space>
               <ClockCircleOutlined />
-              {detail?.appointmentTime ? dayjs(detail.appointmentTime).format('YYYY-MM-DD HH:mm') : '-'}
+              {detail?.appointment_time ? dayjs(detail.appointment_time).format('YYYY-MM-DD HH:mm') : '-'}
             </Space>
           </Descriptions.Item>
           <Descriptions.Item label="时长">{detail?.duration ? `${detail.duration}分钟` : '-'}</Descriptions.Item>
           <Descriptions.Item label="创建时间" span={2}>
-            {detail?.createdAt ? dayjs(detail.createdAt).format('YYYY-MM-DD HH:mm:ss') : '-'}
+            {detail?.created_at ? dayjs(detail.created_at).format('YYYY-MM-DD HH:mm:ss') : '-'}
           </Descriptions.Item>
         </Descriptions>
       </Card>
 
       <Card className="detail-card">
-        <div className="detail-title">地点和备注</div>
-        <Row gutter={24}>
-          <Col span={12}>
-            <div className="detail-item">
-              <div className="detail-label">
-                <Space>
-                  <EnvironmentOutlined />
-                  地点
-                </Space>
-              </div>
-              <div className="detail-value">{detail?.location || '-'}</div>
-            </div>
-          </Col>
-          <Col span={12}>
-            <div className="detail-item">
-              <div className="detail-label">距离</div>
-              <div className="detail-value">{detail?.distance ? `${detail.distance}公里` : '-'}</div>
-            </div>
-          </Col>
-          <Col span={24}>
-            <div className="detail-item">
-              <div className="detail-label">备注</div>
-              <div className="detail-value">{detail?.remark || '-'}</div>
-            </div>
-          </Col>
-        </Row>
+        <div className="detail-title">备注信息</div>
+        <div className="detail-item">
+          <div className="detail-label">备注</div>
+          <div className="detail-value">{detail?.notes || '-'}</div>
+        </div>
       </Card>
 
       {(canConfirm || canCancel || canComplete) && (

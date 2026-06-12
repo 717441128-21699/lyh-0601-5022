@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
 import {
   Form,
   Input,
@@ -11,40 +11,36 @@ import {
   InputNumber,
   Row,
   Col,
-  DatePicker,
-  Slider
+  Slider,
+  List
 } from 'antd'
 import {
   ArrowLeftOutlined,
-  SaveOutlined
+  SaveOutlined,
+  PlusOutlined,
+  DeleteOutlined
 } from '@ant-design/icons'
 import { trainingAPI, userAPI } from '../../services/api'
 import useUserStore from '../../store/useUserStore'
-import dayjs from 'dayjs'
 
 const { TextArea } = Input
 const { Option } = Select
-const { RangePicker } = DatePicker
-
-const TRAINING_TYPES = [
-  { value: 'strength', label: '力量训练' },
-  { value: 'endurance', label: '耐力训练' },
-  { value: 'flexibility', label: '柔韧性训练' },
-  { value: 'balance', label: '平衡训练' },
-  { value: 'coordination', label: '协调性训练' },
-  { value: 'rehabilitation', label: '康复训练' }
-]
 
 const TrainingPlanForm = () => {
   const { id } = useParams()
+  const [searchParams] = useSearchParams()
   const navigate = useNavigate()
   const { user } = useUserStore()
-  const isEdit = !!id
+  const urlId = id || searchParams.get('id')
+  const isEdit = !!urlId
   const [form] = Form.useForm()
   const [loading, setLoading] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [users, setUsers] = useState([])
   const [userLoading, setUserLoading] = useState(false)
+  const [exercises, setExercises] = useState([
+    { id: 1, name: '', sets: 3, reps: 10, weight: 0 }
+  ])
 
   const fetchUsers = async () => {
     setUserLoading(true)
@@ -64,21 +60,21 @@ const TrainingPlanForm = () => {
     if (!isEdit) return
     setLoading(true)
     try {
-      const res = await trainingAPI.getPlanDetail(id)
+      const res = await trainingAPI.getPlanDetail(urlId)
       if (res.code === 200) {
         const data = res.data
         form.setFieldsValue({
-          name: data.name,
-          userId: data.userId,
-          trainingType: data.trainingType,
-          description: data.description,
-          initialIntensity: data.initialIntensity || data.intensity || 5,
-          initialFrequency: data.initialFrequency || data.frequency || 3,
-          target: data.target,
-          cycle: data.cycle,
-          startDate: data.startDate ? dayjs(data.startDate) : undefined,
-          endDate: data.endDate ? dayjs(data.endDate) : undefined
+          plan_name: data.plan_name,
+          user_id: data.user_id,
+          plan_description: data.plan_description,
+          initial_intensity: data.initial_intensity || data.current_intensity || 5,
+          initial_frequency: data.initial_frequency || data.current_frequency || 3,
+          notes: data.notes,
+          target_duration: data.target_duration
         })
+        if (data.exercises && Array.isArray(data.exercises) && data.exercises.length > 0) {
+          setExercises(data.exercises.map((e, i) => ({ id: i + 1, ...e })))
+        }
       }
     } catch (error) {
       console.error('获取训练计划详情失败:', error)
@@ -90,24 +86,52 @@ const TrainingPlanForm = () => {
   useEffect(() => {
     fetchUsers()
     fetchPlanDetail()
-  }, [id])
+  }, [urlId])
+
+  const handleAddExercise = () => {
+    const newId = Math.max(...exercises.map(i => i.id), 0) + 1
+    setExercises([...exercises, { id: newId, name: '', sets: 3, reps: 10, weight: 0 }])
+  }
+
+  const handleRemoveExercise = (id) => {
+    setExercises(exercises.filter(item => item.id !== id))
+  }
+
+  const handleExerciseChange = (id, field, value) => {
+    setExercises(exercises.map(item =>
+      item.id === id ? { ...item, [field]: value } : item
+    ))
+  }
 
   const handleSubmit = async (values) => {
+    const validExercises = exercises.filter(e => e.name)
+    if (validExercises.length === 0) {
+      message.warning('请至少添加一个训练项目')
+      return
+    }
     setSubmitting(true)
     try {
       const data = {
-        ...values,
-        startDate: values.startDate ? values.startDate.format('YYYY-MM-DD') : undefined,
-        endDate: values.endDate ? values.endDate.format('YYYY-MM-DD') : undefined,
-        intensity: values.initialIntensity,
-        frequency: values.initialFrequency
+        user_id: values.user_id,
+        plan_name: values.plan_name,
+        plan_description: values.plan_description,
+        exercises: validExercises.map(e => ({
+          name: e.name,
+          sets: e.sets,
+          reps: e.reps,
+          weight: e.weight
+        })),
+        target_duration: values.target_duration,
+        initial_intensity: values.initial_intensity,
+        initial_frequency: values.initial_frequency,
+        notes: values.notes
       }
       const res = isEdit
-        ? await trainingAPI.updatePlan(id, data)
+        ? await trainingAPI.updatePlan(urlId, data)
         : await trainingAPI.createPlan(data)
       if (res.code === 200) {
         message.success(isEdit ? '训练计划更新成功' : '训练计划创建成功')
-        navigate('/training/plans')
+        navigate('/training')
       }
     } catch (error) {
       console.error('提交训练计划失败:', error)
@@ -137,7 +161,7 @@ const TrainingPlanForm = () => {
     <div className="form-container">
       <Button
         icon={<ArrowLeftOutlined />}
-        onClick={() => navigate('/training/plans')}
+        onClick={() => navigate('/training')}
         style={{ marginBottom: 20 }}
       >
         返回列表
@@ -150,12 +174,17 @@ const TrainingPlanForm = () => {
           form={form}
           layout="vertical"
           onFinish={handleSubmit}
+          initialValues={{
+            initial_intensity: 5,
+            initial_frequency: 3,
+            target_duration: 30
+          }}
         >
           <div className="detail-title">基本信息</div>
 
           <Form.Item
             label="计划名称"
-            name="name"
+            name="plan_name"
             rules={[{ required: true, message: '请输入计划名称' }]}
           >
             <Input placeholder="请输入计划名称" maxLength={100} />
@@ -163,23 +192,10 @@ const TrainingPlanForm = () => {
 
           <Row gutter={16}>
             <Col span={12}>
-              <Form.Item
-                label="训练类型"
-                name="trainingType"
-                rules={[{ required: true, message: '请选择训练类型' }]}
-              >
-                <Select placeholder="请选择训练类型">
-                  {TRAINING_TYPES.map(item => (
-                    <Option key={item.value} value={item.value}>{item.label}</Option>
-                  ))}
-                </Select>
-              </Form.Item>
-            </Col>
-            <Col span={12}>
               {canSelectUser && (
                 <Form.Item
                   label="训练用户"
-                  name="userId"
+                  name="user_id"
                   rules={[{ required: true, message: '请选择训练用户' }]}
                 >
                   <Select
@@ -189,17 +205,32 @@ const TrainingPlanForm = () => {
                     loading={userLoading}
                   >
                     {users.map(u => (
-                      <Option key={u.id} value={u.id}>{u.name || u.userName}</Option>
+                      <Option key={u.id} value={u.id}>{u.real_name || u.name || u.user_name}</Option>
                     ))}
                   </Select>
                 </Form.Item>
               )}
             </Col>
+            <Col span={12}>
+              <Form.Item
+                label="目标周期（天）"
+                name="target_duration"
+                rules={[{ required: true, message: '请输入目标周期' }]}
+              >
+                <InputNumber
+                  min={1}
+                  max={365}
+                  style={{ width: '100%' }}
+                  placeholder="请输入目标周期"
+                  addonAfter="天"
+                />
+              </Form.Item>
+            </Col>
           </Row>
 
           <Form.Item
             label="计划描述"
-            name="description"
+            name="plan_description"
             rules={[{ required: true, message: '请输入计划描述' }]}
           >
             <TextArea rows={3} placeholder="请简要描述训练计划的目的和内容..." showCount maxLength={300} />
@@ -211,7 +242,7 @@ const TrainingPlanForm = () => {
             <Col span={12}>
               <Form.Item
                 label="初始强度（1-10级）"
-                name="initialIntensity"
+                name="initial_intensity"
                 rules={[{ required: true, message: '请设置初始强度' }]}
               >
                 <Slider
@@ -226,7 +257,7 @@ const TrainingPlanForm = () => {
             <Col span={12}>
               <Form.Item
                 label="初始频率（每周次数）"
-                name="initialFrequency"
+                name="initial_frequency"
                 rules={[{ required: true, message: '请设置初始频率' }]}
               >
                 <Slider
@@ -240,53 +271,93 @@ const TrainingPlanForm = () => {
             </Col>
           </Row>
 
-          <div className="detail-title">训练目标与周期</div>
+          <div className="detail-title">
+            <Space>
+              训练项目
+              <Button
+                type="primary"
+                size="small"
+                icon={<PlusOutlined />}
+                onClick={handleAddExercise}
+              >
+                添加项目
+              </Button>
+            </Space>
+          </div>
+
+          <List
+            dataSource={exercises}
+            renderItem={(item) => (
+              <List.Item key={item.id}>
+                <Row gutter={12} style={{ width: '100%' }} align="middle">
+                  <Col span={8}>
+                    <Input
+                      placeholder="项目名称"
+                      value={item.name}
+                      onChange={(e) => handleExerciseChange(item.id, 'name', e.target.value)}
+                    />
+                  </Col>
+                  <Col span={4}>
+                    <InputNumber
+                      min={1}
+                      max={20}
+                      style={{ width: '100%' }}
+                      placeholder="组数"
+                      addonBefore="组"
+                      value={item.sets}
+                      onChange={(value) => handleExerciseChange(item.id, 'sets', value)}
+                    />
+                  </Col>
+                  <Col span={4}>
+                    <InputNumber
+                      min={1}
+                      max={100}
+                      style={{ width: '100%' }}
+                      placeholder="次数"
+                      addonBefore="次"
+                      value={item.reps}
+                      onChange={(value) => handleExerciseChange(item.id, 'reps', value)}
+                    />
+                  </Col>
+                  <Col span={5}>
+                    <InputNumber
+                      min={0}
+                      max={500}
+                      style={{ width: '100%' }}
+                      placeholder="重量"
+                      addonAfter="kg"
+                      value={item.weight}
+                      onChange={(value) => handleExerciseChange(item.id, 'weight', value)}
+                    />
+                  </Col>
+                  <Col span={3}>
+                    <Button
+                      type="text"
+                      danger
+                      icon={<DeleteOutlined />}
+                      onClick={() => handleRemoveExercise(item.id)}
+                      disabled={exercises.length === 1}
+                    />
+                  </Col>
+                </Row>
+              </List.Item>
+            )}
+            style={{ marginBottom: 24 }}
+          />
+
+          <div className="detail-title">训练目标</div>
 
           <Form.Item
             label="训练目标"
-            name="target"
+            name="notes"
             rules={[{ required: true, message: '请输入训练目标' }]}
           >
             <TextArea rows={2} placeholder="请描述训练目标，如：提高上肢力量、改善平衡能力等..." showCount maxLength={200} />
           </Form.Item>
 
-          <Row gutter={16}>
-            <Col span={12}>
-              <Form.Item
-                label="开始日期"
-                name="startDate"
-                rules={[{ required: true, message: '请选择开始日期' }]}
-              >
-                <DatePicker style={{ width: '100%' }} placeholder="请选择开始日期" />
-              </Form.Item>
-            </Col>
-            <Col span={12}>
-              <Form.Item
-                label="结束日期"
-                name="endDate"
-                rules={[{ required: true, message: '请选择结束日期' }]}
-              >
-                <DatePicker style={{ width: '100%' }} placeholder="请选择结束日期" />
-              </Form.Item>
-            </Col>
-          </Row>
-
-          <Form.Item
-            label="训练周期（周）"
-            name="cycle"
-          >
-            <InputNumber
-              min={1}
-              max={52}
-              style={{ width: 200 }}
-              placeholder="请输入训练周期"
-              addonAfter="周"
-            />
-          </Form.Item>
-
           <div style={{ textAlign: 'right', paddingTop: 20 }}>
             <Space>
-              <Button size="large" onClick={() => navigate('/training/plans')}>
+              <Button size="large" onClick={() => navigate('/training')}>
                 取消
               </Button>
               <Button type="primary" size="large" htmlType="submit" loading={submitting} icon={<SaveOutlined />}>

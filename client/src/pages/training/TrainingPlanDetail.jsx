@@ -30,15 +30,6 @@ import dayjs from 'dayjs'
 
 const { confirm } = Modal
 
-const TRAINING_TYPES = {
-  strength: '力量训练',
-  endurance: '耐力训练',
-  flexibility: '柔韧性训练',
-  balance: '平衡训练',
-  coordination: '协调性训练',
-  rehabilitation: '康复训练'
-}
-
 const TrainingPlanDetail = () => {
   const { id } = useParams()
   const navigate = useNavigate()
@@ -92,7 +83,7 @@ const TrainingPlanDetail = () => {
   }, [id])
 
   const handleAddRecord = () => {
-    navigate(`/training/plans/${id}/records/create`)
+    navigate(`/training/records/new?planId=${id}`)
   }
 
   const handleViewRecord = (recordId) => {
@@ -150,8 +141,8 @@ const TrainingPlanDetail = () => {
   const recordColumns = [
     {
       title: '训练日期',
-      dataIndex: 'trainingDate',
-      key: 'trainingDate',
+      dataIndex: 'training_date',
+      key: 'training_date',
       width: 120,
       render: (text) => text ? dayjs(text).format('YYYY-MM-DD') : '-'
     },
@@ -164,8 +155,8 @@ const TrainingPlanDetail = () => {
     },
     {
       title: '完成度',
-      dataIndex: 'completionRate',
-      key: 'completionRate',
+      dataIndex: 'completion_rate',
+      key: 'completion_rate',
       width: 180,
       render: (val) => (
         <Progress percent={val || 0} size="small" />
@@ -173,8 +164,8 @@ const TrainingPlanDetail = () => {
     },
     {
       title: '训练强度',
-      dataIndex: 'intensity',
-      key: 'intensity',
+      dataIndex: 'current_intensity',
+      key: 'current_intensity',
       width: 100,
       render: (val) => val ? `${val}/10` : '-'
     },
@@ -201,15 +192,15 @@ const TrainingPlanDetail = () => {
   const canEdit = (user?.role === 'therapist' || user?.role === 'admin') && detail?.status !== 'completed' && detail?.status !== 'cancelled'
 
   const avgCompletion = progress?.avgCompletionRate || 0
-  const totalTrainings = progress?.totalRecords || records.length
-  const currentIntensity = detail?.intensity || detail?.initialIntensity || 0
-  const currentFrequency = detail?.frequency || detail?.initialFrequency || 0
+  const totalTrainings = progress?.totalTrainingCount || records.length
+  const currentIntensity = detail?.current_intensity || detail?.initial_intensity || 0
+  const currentFrequency = detail?.current_frequency || detail?.initial_frequency || 0
 
   return (
     <div>
       <Button
         icon={<ArrowLeftOutlined />}
-        onClick={() => navigate('/training/plans')}
+        onClick={() => navigate('/training')}
         style={{ marginBottom: 20 }}
       >
         返回列表
@@ -225,22 +216,15 @@ const TrainingPlanDetail = () => {
       <Card loading={loading} className="detail-card">
         <div className="detail-title">计划基本信息</div>
         <Descriptions column={2} bordered size="small">
-          <Descriptions.Item label="计划名称">{detail?.name || '-'}</Descriptions.Item>
-          <Descriptions.Item label="训练类型">
-            {detail?.trainingType ? TRAINING_TYPES[detail.trainingType] || detail.trainingType : '-'}
+          <Descriptions.Item label="计划名称">{detail?.plan_name || '-'}</Descriptions.Item>
+          <Descriptions.Item label="用户姓名">{detail?.user_name || '-'}</Descriptions.Item>
+          <Descriptions.Item label="康复师">{detail?.therapist_name || '-'}</Descriptions.Item>
+          <Descriptions.Item label="创建时间">
+            {detail?.created_at ? dayjs(detail.created_at).format('YYYY-MM-DD') : '-'}
           </Descriptions.Item>
-          <Descriptions.Item label="用户姓名">{detail?.userName || '-'}</Descriptions.Item>
-          <Descriptions.Item label="康复师">{detail?.therapistName || '-'}</Descriptions.Item>
-          <Descriptions.Item label="开始日期">
-            {detail?.startDate ? dayjs(detail.startDate).format('YYYY-MM-DD') : '-'}
-          </Descriptions.Item>
-          <Descriptions.Item label="结束日期">
-            {detail?.endDate ? dayjs(detail.endDate).format('YYYY-MM-DD') : '-'}
-          </Descriptions.Item>
-          <Descriptions.Item label="创建时间" span={2}>
-            {detail?.createdAt ? dayjs(detail.createdAt).format('YYYY-MM-DD HH:mm:ss') : '-'}
-          </Descriptions.Item>
-          <Descriptions.Item label="计划描述" span={2}>{detail?.description || '-'}</Descriptions.Item>
+          <Descriptions.Item label="计划描述" span={2}>{detail?.plan_description || '-'}</Descriptions.Item>
+          <Descriptions.Item label="初始强度">{detail?.initial_intensity || 0}/10</Descriptions.Item>
+          <Descriptions.Item label="初始频率">{detail?.initial_frequency || 0}次/周</Descriptions.Item>
         </Descriptions>
       </Card>
 
@@ -288,7 +272,7 @@ const TrainingPlanDetail = () => {
       </Row>
 
       <Card className="detail-card" title="训练目标">
-        <p style={{ margin: 0 }}>{detail?.target || '-'}</p>
+        <p style={{ margin: 0 }}>{detail?.notes || '-'}</p>
       </Card>
 
       <Card
@@ -329,7 +313,7 @@ const TrainingPlanDetail = () => {
                   type="primary"
                   size="large"
                   icon={<EditOutlined />}
-                  onClick={() => navigate(`/training/plans/${id}/edit`)}
+                  onClick={() => navigate(`/training/${id}/edit`)}
                 >
                   编辑计划
                 </Button>

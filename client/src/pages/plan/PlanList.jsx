@@ -1,13 +1,12 @@
 import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Table, Button, Form, Select, DatePicker, Space, Tag, Input, message } from 'antd'
+import { Table, Button, Form, Select, Space, Tag, Input, message } from 'antd'
 import { SearchOutlined, PlusOutlined, EyeOutlined, EditOutlined, ShoppingCartOutlined } from '@ant-design/icons'
 import { planAPI } from '../../services/api'
 import useUserStore from '../../store/useUserStore'
 import { PLAN_STATUS_MAP } from '../../utils/constants'
 import dayjs from 'dayjs'
 
-const { RangePicker } = DatePicker
 const { Option } = Select
 
 const PlanList = () => {
@@ -34,7 +33,8 @@ const PlanList = () => {
         setData(res.data?.list || res.data || [])
         setPagination(prev => ({
           ...prev,
-          total: res.data?.total || res.data?.length || 0
+          ...res.data?.pagination,
+          total: res.data?.pagination?.total || res.data?.total || res.data?.length || 0
         }))
       }
     } catch (error) {
@@ -52,10 +52,6 @@ const PlanList = () => {
     const values = form.getFieldsValue()
     const params = {}
     if (values.status) params.status = values.status
-    if (values.dateRange && values.dateRange.length === 2) {
-      params.startDate = values.dateRange[0].format('YYYY-MM-DD')
-      params.endDate = values.dateRange[1].format('YYYY-MM-DD')
-    }
     if (values.keyword) params.keyword = values.keyword
     setPagination(prev => ({ ...prev, current: 1 }))
     fetchData(params)
@@ -92,34 +88,34 @@ const PlanList = () => {
     },
     {
       title: '方案名称',
-      dataIndex: 'name',
-      key: 'name',
+      dataIndex: 'plan_name',
+      key: 'plan_name',
       width: 180
     },
     {
       title: '关联评估',
-      dataIndex: 'assessmentId',
-      key: 'assessmentId',
+      dataIndex: 'assessment_id',
+      key: 'assessment_id',
       width: 120,
       render: (text) => text ? `#${text}` : '-'
     },
     {
       title: '用户',
-      dataIndex: 'userName',
-      key: 'userName',
+      dataIndex: 'user_name',
+      key: 'user_name',
       width: 120
     },
     {
       title: '器具数量',
-      dataIndex: 'deviceCount',
+      dataIndex: 'devices',
       key: 'deviceCount',
       width: 100,
-      render: (text) => text || 0
+      render: (devices) => Array.isArray(devices) ? devices.length : 0
     },
     {
       title: '总金额',
-      dataIndex: 'totalPrice',
-      key: 'totalPrice',
+      dataIndex: 'total_price',
+      key: 'total_price',
       width: 120,
       render: (text) => text ? `¥${Number(text).toLocaleString()}` : '-'
     },
@@ -135,8 +131,8 @@ const PlanList = () => {
     },
     {
       title: '创建时间',
-      dataIndex: 'createdAt',
-      key: 'createdAt',
+      dataIndex: 'created_at',
+      key: 'created_at',
       width: 180,
       render: (text) => text ? dayjs(text).format('YYYY-MM-DD HH:mm') : '-'
     },
@@ -208,9 +204,6 @@ const PlanList = () => {
               ))}
             </Select>
           </Form.Item>
-          <Form.Item name="dateRange">
-            <RangePicker style={{ width: 280 }} />
-          </Form.Item>
           <Form.Item>
             <Space>
               <Button type="primary" htmlType="submit" icon={<SearchOutlined />}>
@@ -222,7 +215,7 @@ const PlanList = () => {
         </Form>
 
         {showCreateButton && (
-          <Button type="primary" icon={<PlusOutlined />} onClick={() => navigate('/plans/create')}>
+          <Button type="primary" icon={<PlusOutlined />} onClick={() => navigate('/plans/new')}>
             创建方案
           </Button>
         )}

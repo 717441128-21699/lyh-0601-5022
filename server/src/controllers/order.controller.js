@@ -119,6 +119,10 @@ async function updateOrderStatus(req, res) {
 
     if (order_status === 'confirmed') {
       updateSql += ', confirmed_at = NOW()';
+    } else if (order_status === 'processing') {
+      updateSql += ', processing_at = NOW()';
+    } else if (order_status === 'shipped') {
+      updateSql += ', shipped_at = NOW()';
     } else if (order_status === 'delivered') {
       updateSql += ', delivered_at = NOW()';
     } else if (order_status === 'completed') {
@@ -191,8 +195,8 @@ async function payOrder(req, res) {
     }
 
     await connection.query(
-      'UPDATE orders SET payment_status = ? WHERE id = ?',
-      ['paid', id]
+      'UPDATE orders SET payment_status = ?, order_status = ?, processing_at = NOW() WHERE id = ?',
+      ['paid', 'processing', id]
     );
 
     await createNotification(

@@ -199,7 +199,7 @@ async function updateTrainingPlanStatus(req, res) {
     const { id } = req.params;
     const { status } = req.body;
 
-    if (!['active', 'paused', 'completed', 'cancelled'].includes(status)) {
+    if (!['active', 'suspended', 'completed', 'cancelled'].includes(status)) {
       return errorResponse(res, '无效的状态值');
     }
 
@@ -218,7 +218,7 @@ async function updateTrainingPlanStatus(req, res) {
 
     const statusText = {
       active: '进行中',
-      paused: '已暂停',
+      suspended: '已暂停',
       completed: '已完成',
       cancelled: '已取消'
     };
@@ -315,6 +315,10 @@ async function createTrainingRecord(req, res) {
     const [records] = await connection.query('SELECT * FROM training_records WHERE id = ?', [recordResult.insertId]);
     const record = records[0];
     record.actual_exercises = parseJsonField(record.actual_exercises, []);
+    const intensityAdjustment = nextIntensity - plan.current_intensity;
+    const frequencyAdjustment = nextFrequency - plan.current_frequency;
+    record.intensityAdjustment = intensityAdjustment;
+    record.frequencyAdjustment = frequencyAdjustment;
 
     await createNotification(
       plan.user_id,

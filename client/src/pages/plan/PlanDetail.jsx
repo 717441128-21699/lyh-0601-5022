@@ -96,8 +96,8 @@ const PlanDetail = () => {
   const deviceColumns = [
     {
       title: '器具名称',
-      dataIndex: 'name',
-      key: 'name',
+      dataIndex: 'device_name',
+      key: 'device_name',
       render: (text, record) => (
         <Space>
           {text}
@@ -107,8 +107,8 @@ const PlanDetail = () => {
     },
     {
       title: '单价',
-      dataIndex: 'price',
-      key: 'price',
+      dataIndex: 'unit_price',
+      key: 'unit_price',
       width: 120,
       render: (text) => `¥${Number(text).toLocaleString()}`
     },
@@ -122,16 +122,16 @@ const PlanDetail = () => {
       title: '小计',
       key: 'subtotal',
       width: 140,
-      render: (_, record) => `¥${(record.price * record.quantity).toLocaleString()}`
+      render: (_, record) => `¥${(record.unit_price * record.quantity).toLocaleString()}`
     }
   ]
 
   const devices = detail?.devices || []
-  const totalPrice = devices.reduce((sum, item) => sum + (item.price * item.quantity), 0)
+  const totalPrice = devices.reduce((sum, item) => sum + (item.unit_price * item.quantity), 0)
 
-  const canEdit = (user?.role === 'adapter' || user?.role === 'admin') && detail?.status === 'draft'
-  const canConfirm = user?.role === 'disabled' && detail?.status === 'draft'
-  const canReject = user?.role === 'disabled' && detail?.status === 'draft'
+  const canEdit = (user?.role === 'adapter' || user?.role === 'admin') && ['draft', 'modified', 'rejected'].includes(detail?.status)
+  const canConfirm = user?.role === 'disabled' && ['draft', 'modified'].includes(detail?.status)
+  const canReject = user?.role === 'disabled' && ['draft', 'modified'].includes(detail?.status)
   const canGenerateOrder = detail?.status === 'confirmed'
 
   return (
@@ -155,17 +155,17 @@ const PlanDetail = () => {
         <div className="detail-title">方案基本信息</div>
         <Descriptions column={2} bordered size="small">
           <Descriptions.Item label="方案编号">{detail?.id || '-'}</Descriptions.Item>
-          <Descriptions.Item label="方案名称">{detail?.name || '-'}</Descriptions.Item>
-          <Descriptions.Item label="关联评估">{detail?.assessmentId ? `#${detail.assessmentId}` : '-'}</Descriptions.Item>
-          <Descriptions.Item label="用户姓名">{detail?.userName || '-'}</Descriptions.Item>
+          <Descriptions.Item label="方案名称">{detail?.plan_name || '-'}</Descriptions.Item>
+          <Descriptions.Item label="关联评估">{detail?.assessment_id ? `#${detail.assessment_id}` : '-'}</Descriptions.Item>
+          <Descriptions.Item label="用户姓名">{detail?.user_name || '-'}</Descriptions.Item>
           <Descriptions.Item label="器具数量">{devices.length}</Descriptions.Item>
           <Descriptions.Item label="总金额">
             <span style={{ color: '#f5222d', fontWeight: 600 }}>¥{totalPrice.toLocaleString()}</span>
           </Descriptions.Item>
           <Descriptions.Item label="创建时间" span={2}>
-            {detail?.createdAt ? dayjs(detail.createdAt).format('YYYY-MM-DD HH:mm:ss') : '-'}
+            {detail?.created_at ? dayjs(detail.created_at).format('YYYY-MM-DD HH:mm:ss') : '-'}
           </Descriptions.Item>
-          <Descriptions.Item label="方案描述" span={2}>{detail?.description || '-'}</Descriptions.Item>
+          <Descriptions.Item label="方案描述" span={2}>{detail?.plan_description || '-'}</Descriptions.Item>
         </Descriptions>
       </Card>
 
@@ -173,7 +173,7 @@ const PlanDetail = () => {
         <Table
           columns={deviceColumns}
           dataSource={devices}
-          rowKey="id"
+          rowKey="device_id"
           pagination={false}
           size="small"
           summary={() => (
@@ -195,7 +195,7 @@ const PlanDetail = () => {
           <Col span={24}>
             <div className="detail-item">
               <div className="detail-label">使用说明</div>
-              <div className="detail-value">{detail?.usageInstructions || '-'}</div>
+              <div className="detail-value">{detail?.usage_instructions || '-'}</div>
             </div>
           </Col>
           <Col span={12}>
@@ -207,7 +207,7 @@ const PlanDetail = () => {
           <Col span={12}>
             <div className="detail-item">
               <div className="detail-label">预期效果</div>
-              <div className="detail-value">{detail?.expectedEffect || '-'}</div>
+              <div className="detail-value">{detail?.estimated_effect || '-'}</div>
             </div>
           </Col>
         </Row>

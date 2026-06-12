@@ -1,13 +1,12 @@
 import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Table, Button, Form, Select, DatePicker, Space, Tag, Input, Modal, message } from 'antd'
+import { Table, Button, Form, Select, DatePicker, Space, Tag, Modal, message } from 'antd'
 import { SearchOutlined, PlusOutlined, EyeOutlined, CheckOutlined, CloseOutlined, CheckCircleOutlined } from '@ant-design/icons'
 import { appointmentAPI } from '../../services/api'
 import useUserStore from '../../store/useUserStore'
 import { APPOINTMENT_STATUS_MAP, APPOINTMENT_TYPE_MAP } from '../../utils/constants'
 import dayjs from 'dayjs'
 
-const { RangePicker } = DatePicker
 const { Option } = Select
 const { confirm } = Modal
 
@@ -53,12 +52,7 @@ const AppointmentList = () => {
     const values = form.getFieldsValue()
     const params = {}
     if (values.status) params.status = values.status
-    if (values.type) params.type = values.type
-    if (values.dateRange && values.dateRange.length === 2) {
-      params.startDate = values.dateRange[0].format('YYYY-MM-DD')
-      params.endDate = values.dateRange[1].format('YYYY-MM-DD')
-    }
-    if (values.keyword) params.keyword = values.keyword
+    if (values.date) params.date = values.date.format('YYYY-MM-DD')
     setPagination(prev => ({ ...prev, current: 1 }))
     fetchData(params)
   }
@@ -101,8 +95,8 @@ const AppointmentList = () => {
     },
     {
       title: '预约类型',
-      dataIndex: 'type',
-      key: 'type',
+      dataIndex: 'service_type',
+      key: 'service_type',
       width: 100,
       render: (type) => {
         const typeInfo = APPOINTMENT_TYPE_MAP[type] || { label: type, color: 'default' }
@@ -111,20 +105,20 @@ const AppointmentList = () => {
     },
     {
       title: '用户',
-      dataIndex: 'userName',
-      key: 'userName',
+      dataIndex: 'user_name',
+      key: 'user_name',
       width: 120
     },
     {
       title: '康复师',
-      dataIndex: 'therapistName',
-      key: 'therapistName',
+      dataIndex: 'therapist_name',
+      key: 'therapist_name',
       width: 120
     },
     {
       title: '日期时间',
-      dataIndex: 'appointmentTime',
-      key: 'appointmentTime',
+      dataIndex: 'appointment_time',
+      key: 'appointment_time',
       width: 180,
       render: (text) => text ? dayjs(text).format('YYYY-MM-DD HH:mm') : '-'
     },
@@ -140,8 +134,8 @@ const AppointmentList = () => {
     },
     {
       title: '创建时间',
-      dataIndex: 'createdAt',
-      key: 'createdAt',
+      dataIndex: 'created_at',
+      key: 'created_at',
       width: 180,
       render: (text) => text ? dayjs(text).format('YYYY-MM-DD HH:mm') : '-'
     },
@@ -160,28 +154,17 @@ const AppointmentList = () => {
           >
             查看详情
           </Button>
-          {record.status === 'pending' && (
-            <>
-              <Button
-                type="link"
-                size="small"
-                icon={<CheckOutlined />}
-                onClick={() => handleStatusUpdate(record.id, 'confirmed', '确认')}
-              >
-                确认
-              </Button>
-              <Button
-                type="link"
-                size="small"
-                danger
-                icon={<CloseOutlined />}
-                onClick={() => handleStatusUpdate(record.id, 'cancelled', '取消')}
-              >
-                取消
-              </Button>
-            </>
+          {record.status === 'pending' && user?.role === 'therapist' && (
+            <Button
+              type="link"
+              size="small"
+              icon={<CheckOutlined />}
+              onClick={() => handleStatusUpdate(record.id, 'confirmed', '确认')}
+            >
+              确认
+            </Button>
           )}
-          {record.status === 'confirmed' && (
+          {record.status === 'confirmed' && user?.role === 'therapist' && (
             <Button
               type="link"
               size="small"
@@ -189,6 +172,17 @@ const AppointmentList = () => {
               onClick={() => handleStatusUpdate(record.id, 'completed', '完成')}
             >
               完成
+            </Button>
+          )}
+          {record.status === 'pending' && user?.role === 'disabled' && (
+            <Button
+              type="link"
+              size="small"
+              danger
+              icon={<CloseOutlined />}
+              onClick={() => handleStatusUpdate(record.id, 'cancelled', '取消')}
+            >
+              取消
             </Button>
           )}
         </Space>
@@ -209,14 +203,6 @@ const AppointmentList = () => {
           onFinish={handleSearch}
           style={{ flexWrap: 'wrap', gap: 12 }}
         >
-          <Form.Item name="keyword">
-            <Input
-              placeholder="搜索用户/康复师"
-              prefix={<SearchOutlined />}
-              allowClear
-              style={{ width: 200 }}
-            />
-          </Form.Item>
           <Form.Item name="status">
             <Select placeholder="状态" allowClear style={{ width: 140 }}>
               {Object.entries(APPOINTMENT_STATUS_MAP).map(([key, value]) => (
@@ -224,15 +210,8 @@ const AppointmentList = () => {
               ))}
             </Select>
           </Form.Item>
-          <Form.Item name="type">
-            <Select placeholder="预约类型" allowClear style={{ width: 140 }}>
-              {Object.entries(APPOINTMENT_TYPE_MAP).map(([key, value]) => (
-                <Option key={key} value={key}>{value.label}</Option>
-              ))}
-            </Select>
-          </Form.Item>
-          <Form.Item name="dateRange">
-            <RangePicker style={{ width: 280 }} />
+          <Form.Item name="date">
+            <DatePicker placeholder="选择日期" allowClear style={{ width: 180 }} />
           </Form.Item>
           <Form.Item>
             <Space>
@@ -245,7 +224,7 @@ const AppointmentList = () => {
         </Form>
 
         {showCreateButton && (
-          <Button type="primary" icon={<PlusOutlined />} onClick={() => navigate('/appointments/create')}>
+          <Button type="primary" icon={<PlusOutlined />} onClick={() => navigate('/appointments/new')}>
             创建预约
           </Button>
         )}

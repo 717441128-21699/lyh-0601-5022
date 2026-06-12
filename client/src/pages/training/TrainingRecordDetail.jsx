@@ -10,7 +10,6 @@ import {
   Col,
   List,
   Tag,
-  Divider,
   Statistic,
   Empty,
   Alert
@@ -50,12 +49,12 @@ const TrainingRecordDetail = () => {
     fetchDetail()
   }, [id])
 
-  const items = detail?.items || detail?.trainingItems || []
+  const items = detail?.actual_exercises || detail?.exercises || []
 
-  const intensityAdjustment = detail?.intensityAdjustment || 0
-  const frequencyAdjustment = detail?.frequencyAdjustment || 0
-  const nextIntensity = detail?.nextIntensity || detail?.intensity || 0
-  const nextFrequency = detail?.nextFrequency || detail?.frequency || 0
+  const intensityAdjustment = detail ? (detail.next_intensity || detail.current_intensity) - (detail.current_intensity || 0) : 0
+  const frequencyAdjustment = detail ? (detail.next_frequency || detail.current_frequency) - (detail.current_frequency || 0) : 0
+  const nextIntensity = detail?.next_intensity || detail?.current_intensity || 0
+  const nextFrequency = detail?.next_frequency || detail?.current_frequency || 0
 
   const getAdjustIcon = (val) => {
     if (val > 0) return <RiseOutlined style={{ color: '#52c41a' }} />
@@ -85,25 +84,25 @@ const TrainingRecordDetail = () => {
         <div className="detail-title">训练基本信息</div>
         <Descriptions column={2} bordered size="small">
           <Descriptions.Item label="关联计划">
-            {detail?.planName || detail?.planId ? (
-              <Button type="link" onClick={() => navigate(`/training/plans/${detail.planId}`)}>
-                {detail.planName || `#${detail.planId}`}
+            {detail?.plan_name || detail?.plan_id ? (
+              <Button type="link" onClick={() => navigate(`/training/${detail.plan_id}`)}>
+                {detail.plan_name || `#${detail.plan_id}`}
               </Button>
             ) : '-'}
           </Descriptions.Item>
           <Descriptions.Item label="训练日期">
-            {detail?.trainingDate ? dayjs(detail.trainingDate).format('YYYY-MM-DD') : '-'}
+            {detail?.training_date ? dayjs(detail.training_date).format('YYYY-MM-DD') : '-'}
           </Descriptions.Item>
           <Descriptions.Item label="训练时长">
             {detail?.duration ? `${detail.duration}分钟` : '-'}
           </Descriptions.Item>
           <Descriptions.Item label="训练强度">
-            {detail?.intensity ? `${detail.intensity}/10` : '-'}
+            {detail?.current_intensity ? `${detail.current_intensity}/10` : '-'}
           </Descriptions.Item>
           <Descriptions.Item label="完成度" span={2}>
             <Progress
-              percent={detail?.completionRate || 0}
-              status={detail?.completionRate >= 80 ? 'success' : detail?.completionRate >= 50 ? 'active' : 'exception'}
+              percent={detail?.completion_rate || 0}
+              status={detail?.completion_rate >= 80 ? 'success' : detail?.completion_rate >= 50 ? 'active' : 'exception'}
               strokeColor={{
                 '0%': '#108ee9',
                 '100%': '#87d068',
@@ -111,12 +110,12 @@ const TrainingRecordDetail = () => {
             />
           </Descriptions.Item>
           <Descriptions.Item label="记录时间" span={2}>
-            {detail?.createdAt ? dayjs(detail.createdAt).format('YYYY-MM-DD HH:mm:ss') : '-'}
+            {detail?.created_at ? dayjs(detail.created_at).format('YYYY-MM-DD HH:mm:ss') : '-'}
           </Descriptions.Item>
         </Descriptions>
       </Card>
 
-      {(intensityAdjustment !== 0 || frequencyAdjustment !== 0 || detail?.adjustmentReason) && (
+      {(intensityAdjustment !== 0 || frequencyAdjustment !== 0 || detail?.adjustment_reason) && (
         <Card className="detail-card">
           <div className="detail-title">
             <Space>
@@ -164,10 +163,10 @@ const TrainingRecordDetail = () => {
             </Col>
           </Row>
 
-          {detail?.adjustmentReason && (
+          {detail?.adjustment_reason && (
             <Alert
               message="调整原因"
-              description={detail.adjustmentReason}
+              description={detail.adjustment_reason}
               type="info"
               showIcon
             />
@@ -217,9 +216,9 @@ const TrainingRecordDetail = () => {
       <Row gutter={16} style={{ marginBottom: 16 }}>
         <Col span={12}>
           <Card className="detail-card">
-            <div className="detail-title">表现数据</div>
+            <div className="detail-title">训练备注</div>
             <div style={{ color: '#333', lineHeight: 1.8, minHeight: 60 }}>
-              {detail?.performance || '-'}
+              {detail?.notes || '-'}
             </div>
           </Card>
         </Col>
@@ -232,13 +231,6 @@ const TrainingRecordDetail = () => {
           </Card>
         </Col>
       </Row>
-
-      <Card className="detail-card">
-        <div className="detail-title">训练备注</div>
-        <div style={{ color: '#333', lineHeight: 1.8, minHeight: 40 }}>
-          {detail?.notes || '-'}
-        </div>
-      </Card>
     </div>
   )
 }

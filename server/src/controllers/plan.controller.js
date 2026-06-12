@@ -320,11 +320,11 @@ async function generateOrder(req, res) {
     if (devices && devices.length > 0) {
       const itemValues = devices.map(device => [
         orderId,
-        device.id,
-        device.name,
+        device.device_id || device.id,
+        device.device_name || device.name,
         device.quantity || 1,
-        device.price || 0,
-        (device.price || 0) * (device.quantity || 1)
+        device.unit_price || device.price || 0,
+        device.subtotal || (device.unit_price || device.price || 0) * (device.quantity || 1)
       ]);
 
       const placeholders = devices.map(() => '(?, ?, ?, ?, ?, ?)').join(', ');

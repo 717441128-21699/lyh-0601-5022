@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import {
   Form,
   Input,
@@ -29,13 +29,12 @@ import useUserStore from '../../store/useUserStore'
 import dayjs from 'dayjs'
 
 const { TextArea } = Input
-const { Item } = Form.List
 const { confirm } = Modal
 
 const TrainingRecordForm = () => {
-  const { planId } = useParams()
-  const navigate = useNavigate()
   const [searchParams] = useSearchParams()
+  const planId = searchParams.get('planId')
+  const navigate = useNavigate()
   const { user } = useUserStore()
   const [form] = Form.useForm()
   const [loading, setLoading] = useState(false)
@@ -55,7 +54,7 @@ const TrainingRecordForm = () => {
       if (res.code === 200) {
         setPlanDetail(res.data)
         form.setFieldsValue({
-          intensity: res.data.intensity || res.data.initialIntensity || 5
+          current_intensity: res.data.current_intensity || res.data.initial_intensity || 5
         })
       }
     } catch (error) {
@@ -100,20 +99,19 @@ const TrainingRecordForm = () => {
     setSubmitting(true)
     try {
       const data = {
-        planId: planId,
-        trainingDate: values.trainingDate ? values.trainingDate.format('YYYY-MM-DD') : dayjs().format('YYYY-MM-DD'),
+        plan_id: planId,
+        training_date: values.training_date ? values.training_date.format('YYYY-MM-DD') : dayjs().format('YYYY-MM-DD'),
         duration: values.duration,
-        completionRate: values.completionRate,
-        intensity: values.intensity,
-        items: items.filter(i => i.name).map(i => ({
+        completion_rate: values.completion_rate,
+        current_intensity: values.current_intensity,
+        actual_exercises: items.filter(i => i.name).map(i => ({
           name: i.name,
           sets: i.sets,
           reps: i.reps,
           weight: i.weight
         })),
-        performance: values.performance,
-        notes: values.notes,
-        feedback: values.feedback
+        feedback: values.feedback,
+        notes: values.notes
       }
       const res = await trainingAPI.createRecord(data)
       if (res.code === 200) {
@@ -129,7 +127,7 @@ const TrainingRecordForm = () => {
 
   const handleCloseResult = () => {
     setResultVisible(false)
-    navigate(`/training/plans/${planId}`)
+    navigate(`/training/${planId}`)
   }
 
   const handleViewDetail = () => {
@@ -137,7 +135,7 @@ const TrainingRecordForm = () => {
     if (adjustResult?.id) {
       navigate(`/training/records/${adjustResult.id}`)
     } else {
-      navigate(`/training/plans/${planId}`)
+      navigate(`/training/${planId}`)
     }
   }
 
@@ -156,9 +154,9 @@ const TrainingRecordForm = () => {
       {planDetail && (
         <Card className="detail-card" size="small" style={{ marginBottom: 16 }}>
           <Space size="large">
-            <span><strong>计划名称：</strong>{planDetail.name}</span>
-            <span><strong>当前强度：</strong>{planDetail.intensity || planDetail.initialIntensity || 0}/10</span>
-            <span><strong>用户：</strong>{planDetail.userName || '-'}</span>
+            <span><strong>计划名称：</strong>{planDetail.plan_name}</span>
+            <span><strong>当前强度：</strong>{planDetail.current_intensity || planDetail.initial_intensity || 0}/10</span>
+            <span><strong>用户：</strong>{planDetail.user_name || '-'}</span>
           </Space>
         </Card>
       )}
@@ -169,10 +167,10 @@ const TrainingRecordForm = () => {
           layout="vertical"
           onFinish={handleSubmit}
           initialValues={{
-            trainingDate: dayjs(),
+            training_date: dayjs(),
             duration: 30,
-            completionRate: 80,
-            intensity: 5
+            completion_rate: 80,
+            current_intensity: 5
           }}
         >
           <div className="detail-title">基本信息</div>
@@ -181,7 +179,7 @@ const TrainingRecordForm = () => {
             <Col span={12}>
               <Form.Item
                 label="训练日期"
-                name="trainingDate"
+                name="training_date"
                 rules={[{ required: true, message: '请选择训练日期' }]}
               >
                 <DatePicker style={{ width: '100%' }} />
@@ -206,7 +204,7 @@ const TrainingRecordForm = () => {
 
           <Form.Item
             label="完成度"
-            name="completionRate"
+            name="completion_rate"
             rules={[{ required: true, message: '请设置完成度' }]}
           >
             <Slider
@@ -220,7 +218,7 @@ const TrainingRecordForm = () => {
 
           <Form.Item
             label="训练强度（1-10级）"
-            name="intensity"
+            name="current_intensity"
             rules={[{ required: true, message: '请设置训练强度' }]}
           >
             <Slider
@@ -250,7 +248,7 @@ const TrainingRecordForm = () => {
 
           <List
             dataSource={items}
-            renderItem={(item, index) => (
+            renderItem={(item) => (
               <List.Item key={item.id}>
                 <Row gutter={12} style={{ width: '100%' }} align="middle">
                   <Col span={8}>
@@ -312,13 +310,6 @@ const TrainingRecordForm = () => {
 
           <div className="detail-title">训练详情</div>
 
-          <Form.Item
-            label="表现数据"
-            name="performance"
-          >
-            <TextArea rows={3} placeholder="请记录本次训练的表现数据，如：力量提升、耐力改善等..." showCount maxLength={500} />
-          </Form.Item>
-
           <Row gutter={16}>
             <Col span={12}>
               <Form.Item
@@ -378,7 +369,7 @@ const TrainingRecordForm = () => {
               <Card size="small" style={{ textAlign: 'center' }}>
                 <Statistic
                   title="下一次强度"
-                  value={adjustResult?.nextIntensity || adjustResult?.intensity || 0}
+                  value={adjustResult?.next_intensity || adjustResult?.current_intensity || 0}
                   suffix="/10"
                   valueStyle={{ color: '#1890ff' }}
                 />
@@ -393,7 +384,7 @@ const TrainingRecordForm = () => {
               <Card size="small" style={{ textAlign: 'center' }}>
                 <Statistic
                   title="下一次频率"
-                  value={adjustResult?.nextFrequency || adjustResult?.frequency || 0}
+                  value={adjustResult?.next_frequency || adjustResult?.current_frequency || 0}
                   suffix="次/周"
                   valueStyle={{ color: '#52c41a' }}
                 />
@@ -406,10 +397,10 @@ const TrainingRecordForm = () => {
             </Col>
           </Row>
 
-          {adjustResult?.adjustmentReason && (
+          {adjustResult?.adjustment_reason && (
             <div style={{ marginTop: 16, padding: 12, background: '#f6ffed', borderRadius: 6, border: '1px solid #b7eb8f' }}>
               <div style={{ fontWeight: 500, marginBottom: 4 }}>调整说明</div>
-              <div style={{ fontSize: 13, color: '#666' }}>{adjustResult.adjustmentReason}</div>
+              <div style={{ fontSize: 13, color: '#666' }}>{adjustResult.adjustment_reason}</div>
             </div>
           )}
         </div>

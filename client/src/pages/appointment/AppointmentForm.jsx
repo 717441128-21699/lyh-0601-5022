@@ -10,7 +10,6 @@ import {
   message,
   List,
   Tag,
-  Radio,
   Spin,
   Empty,
   Row,
@@ -46,11 +45,11 @@ const AppointmentForm = () => {
       const values = await form.validateFields(['type', 'date'])
       setRecommending(true)
       const res = await appointmentAPI.getAvailable({
-        type: values.type,
+        specialty: values.type,
         date: values.date.format('YYYY-MM-DD')
       })
       if (res.code === 200) {
-        const slots = res.data || []
+        const slots = res.data.list || []
         slots.sort((a, b) => (a.distance || 0) - (b.distance || 0))
         setAvailableSlots(slots)
         setSelectedSlot(null)
@@ -72,14 +71,14 @@ const AppointmentForm = () => {
     }
     try {
       const values = await form.validateFields()
+      const dateStr = form.getFieldValue('date').format('YYYY-MM-DD')
       setSubmitting(true)
       const res = await appointmentAPI.create({
-        type: values.type,
-        therapistId: selectedSlot.therapistId,
-        appointmentTime: selectedSlot.startTime,
-        duration: selectedSlot.duration,
-        location: selectedSlot.location,
-        remark: values.remark
+        therapist_id: selectedSlot.id,
+        appointment_time: `${dateStr} ${selectedSlot.startTime}`,
+        duration: 60,
+        service_type: values.type,
+        notes: values.remark
       })
       if (res.code === 200) {
         message.success('预约创建成功')
@@ -185,7 +184,7 @@ const AppointmentForm = () => {
         ) : (
           <div>
             {availableSlots.map((therapist, index) => (
-              <div key={therapist.therapistId} style={{ marginBottom: 16 }}>
+              <div key={therapist.id} style={{ marginBottom: 16 }}>
                 <div className="recommendation-item">
                   <div className="recommendation-score">
                     {index + 1}
@@ -194,7 +193,7 @@ const AppointmentForm = () => {
                     <div className="recommendation-name">
                       <Space>
                         <UserOutlined />
-                        {therapist.therapistName}
+                        {therapist.realName}
                       </Space>
                     </div>
                     <div className="recommendation-desc">
@@ -205,9 +204,9 @@ const AppointmentForm = () => {
                         </span>
                         <span>
                           <StarOutlined style={{ color: '#faad14', marginRight: 4 }} />
-                          {therapist.rating || '5.0'}分
+                          {therapist.experienceYears || '5'}年经验
                         </span>
-                        <span>{therapist.location}</span>
+                        <span>{therapist.workAddress}</span>
                       </Space>
                     </div>
                   </div>
@@ -215,33 +214,32 @@ const AppointmentForm = () => {
                 <div style={{ padding: '0 0 0 76px' }}>
                   <List
                     grid={{ gutter: 8, xs: 2, sm: 3, md: 4, lg: 6 }}
-                    dataSource={therapist.slots || []}
+                    dataSource={therapist.availableSlots || []}
                     renderItem={(slot) => {
-                      const isSelected = selectedSlot?.id === slot.id && selectedSlot?.therapistId === therapist.therapistId
+                      const isSelected = selectedSlot?.startTime === slot.startTime && selectedSlot?.id === therapist.id
                       return (
                         <List.Item>
                           <div
-                            onClick={() => slot.available && handleSlotSelect({
-                              ...slot,
-                              therapistId: therapist.therapistId,
-                              therapistName: therapist.therapistName,
-                              location: therapist.location,
-                              distance: therapist.distance
+                            onClick={() => handleSlotSelect({
+                              id: therapist.id,
+                              realName: therapist.realName,
+                              workAddress: therapist.workAddress,
+                              distance: therapist.distance,
+                              startTime: slot.startTime
                             })}
                             style={{ 
                               padding: '8px 12px', 
-                              border: `2px solid ${isSelected ? '#1890ff' : slot.available ? '#e8e8e8' : '#f0f0f0'}`, 
+                              border: `2px solid ${isSelected ? '#1890ff' : '#e8e8e8'}`, 
                               borderRadius: 6,
                               textAlign: 'center',
-                              background: isSelected ? '#e6f7ff' : slot.available ? '#fff' : '#f5f5f5',
-                              cursor: slot.available ? 'pointer' : 'not-allowed',
-                              opacity: slot.available ? 1 : 0.5,
+                              background: isSelected ? '#e6f7ff' : '#fff',
+                              cursor: 'pointer',
                               transition: 'all 0.3s'
                             }}
                           >
                             <ClockCircleOutlined style={{ marginRight: 4, color: isSelected ? '#1890ff' : '' }} />
                             <span style={{ color: isSelected ? '#1890ff' : '', fontWeight: isSelected ? 600 : 400 }}>
-                              {dayjs(slot.startTime).format('HH:mm')}
+                              {slot.startTime.substring(0, 5)}
                             </span>
                           </div>
                         </List.Item>

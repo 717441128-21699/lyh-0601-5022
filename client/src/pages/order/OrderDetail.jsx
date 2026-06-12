@@ -11,8 +11,7 @@ import {
   Row,
   Col,
   Modal,
-  Timeline,
-  Divider
+  Timeline
 } from 'antd'
 import {
   ArrowLeftOutlined,
@@ -70,7 +69,7 @@ const OrderDetail = () => {
   const handlePay = () => {
     confirm({
       title: '确认支付订单？',
-      content: `订单金额：¥${Number(detail?.totalAmount || 0).toLocaleString()}`,
+      content: `订单金额：¥${Number(detail?.actual_amount || 0).toLocaleString()}`,
       okText: '确认支付',
       cancelText: '取消',
       onOk: async () => {
@@ -99,7 +98,7 @@ const OrderDetail = () => {
       onOk: async () => {
         setOperating(true)
         try {
-          const res = await orderAPI.updateOrderStatus(id, { status: 'completed' })
+          const res = await orderAPI.updateOrderStatus(id, { order_status: 'completed' })
           if (res.code === 200) {
             message.success('确认收货成功')
             fetchDetail()
@@ -123,7 +122,7 @@ const OrderDetail = () => {
       onOk: async () => {
         setOperating(true)
         try {
-          const res = await orderAPI.updateOrderStatus(id, { status: 'cancelled' })
+          const res = await orderAPI.updateOrderStatus(id, { order_status: 'cancelled' })
           if (res.code === 200) {
             message.success('订单已取消')
             fetchDetail()
@@ -137,14 +136,14 @@ const OrderDetail = () => {
     })
   }
 
-  const orderStatusInfo = detail ? (ORDER_STATUS_MAP[detail.status] || { label: detail.status, color: 'default' }) : { label: '-', color: 'default' }
-  const paymentStatusInfo = detail ? (PAYMENT_STATUS_MAP[detail.paymentStatus] || { label: detail.paymentStatus, color: 'default' }) : { label: '-', color: 'default' }
+  const orderStatusInfo = detail ? (ORDER_STATUS_MAP[detail.order_status] || { label: detail.order_status, color: 'default' }) : { label: '-', color: 'default' }
+  const paymentStatusInfo = detail ? (PAYMENT_STATUS_MAP[detail.payment_status] || { label: detail.payment_status, color: 'default' }) : { label: '-', color: 'default' }
 
   const itemColumns = [
     {
       title: '器具名称',
-      dataIndex: 'name',
-      key: 'name',
+      dataIndex: 'device_name',
+      key: 'device_name',
       render: (text, record) => (
         <Space>
           {text}
@@ -154,8 +153,8 @@ const OrderDetail = () => {
     },
     {
       title: '单价',
-      dataIndex: 'price',
-      key: 'price',
+      dataIndex: 'unit_price',
+      key: 'unit_price',
       width: 120,
       render: (text) => `¥${Number(text).toLocaleString()}`
     },
@@ -169,68 +168,68 @@ const OrderDetail = () => {
       title: '小计',
       key: 'subtotal',
       width: 140,
-      render: (_, record) => `¥${((record.price || 0) * (record.quantity || 0)).toLocaleString()}`
+      render: (_, record) => `¥${((record.unit_price || 0) * (record.quantity || 0)).toLocaleString()}`
     }
   ]
 
-  const totalAmount = items.reduce((sum, item) => sum + ((item.price || 0) * (item.quantity || 0)), 0)
+  const totalAmount = items.reduce((sum, item) => sum + ((item.unit_price || 0) * (item.quantity || 0)), 0)
 
   const generateTimeline = () => {
     const timeline = []
-    if (detail?.createdAt) {
+    if (detail?.created_at) {
       timeline.push({
         color: 'green',
         label: '订单创建',
-        time: detail.createdAt
+        time: detail.created_at
       })
     }
-    if (detail?.status === 'confirmed' || detail?.status === 'processing' || detail?.status === 'shipped' || detail?.status === 'delivered' || detail?.status === 'completed') {
+    if (detail?.order_status === 'confirmed' || detail?.order_status === 'processing' || detail?.order_status === 'shipped' || detail?.order_status === 'delivered' || detail?.order_status === 'completed') {
       timeline.push({
         color: 'blue',
         label: '订单确认',
-        time: detail.confirmedAt || detail.createdAt
+        time: detail.confirmed_at || detail.created_at
       })
     }
-    if (detail?.paymentStatus === 'paid') {
+    if (detail?.payment_status === 'paid') {
       timeline.push({
         color: 'green',
         label: '支付成功',
-        time: detail.paidAt
+        time: detail.paid_at
       })
     }
-    if (detail?.status === 'processing' || detail?.status === 'shipped' || detail?.status === 'delivered' || detail?.status === 'completed') {
+    if (detail?.order_status === 'processing' || detail?.order_status === 'shipped' || detail?.order_status === 'delivered' || detail?.order_status === 'completed') {
       timeline.push({
         color: 'purple',
         label: '处理中',
-        time: detail.processingAt || detail.confirmedAt
+        time: detail.processing_at || detail.confirmed_at
       })
     }
-    if (detail?.status === 'shipped' || detail?.status === 'delivered' || detail?.status === 'completed') {
+    if (detail?.order_status === 'shipped' || detail?.order_status === 'delivered' || detail?.order_status === 'completed') {
       timeline.push({
         color: 'cyan',
         label: '已发货',
-        time: detail.shippedAt
+        time: detail.shipped_at
       })
     }
-    if (detail?.status === 'delivered' || detail?.status === 'completed') {
+    if (detail?.order_status === 'delivered' || detail?.order_status === 'completed') {
       timeline.push({
         color: 'geekblue',
         label: '已送达',
-        time: detail.deliveredAt
+        time: detail.delivered_at
       })
     }
-    if (detail?.status === 'completed') {
+    if (detail?.order_status === 'completed') {
       timeline.push({
         color: 'green',
         label: '订单完成',
-        time: detail.completedAt
+        time: detail.completed_at
       })
     }
-    if (detail?.status === 'cancelled') {
+    if (detail?.order_status === 'cancelled') {
       timeline.push({
         color: 'red',
         label: '订单取消',
-        time: detail.cancelledAt
+        time: detail.cancelled_at
       })
     }
     return timeline
@@ -238,9 +237,9 @@ const OrderDetail = () => {
 
   const timelineItems = generateTimeline()
 
-  const canPay = user?.role === 'disabled' && detail?.status === 'confirmed' && detail?.paymentStatus === 'unpaid'
-  const canCancel = (user?.role === 'disabled' || user?.role === 'admin') && (detail?.status === 'pending' || detail?.status === 'confirmed')
-  const canConfirmReceive = user?.role === 'disabled' && detail?.status === 'delivered'
+  const canPay = user?.role === 'disabled' && (detail?.order_status === 'pending' || detail?.order_status === 'confirmed') && detail?.payment_status === 'unpaid'
+  const canCancel = (user?.role === 'disabled' || user?.role === 'admin') && (detail?.order_status === 'pending' || detail?.order_status === 'confirmed')
+  const canConfirmReceive = user?.role === 'disabled' && detail?.order_status === 'delivered'
   const canUpdateStatus = user?.role === 'admin' || user?.role === 'finance' || user?.role === 'adapter'
 
   return (
@@ -266,15 +265,15 @@ const OrderDetail = () => {
           <Card loading={loading} className="detail-card">
             <div className="detail-title">订单基本信息</div>
             <Descriptions column={2} bordered size="small">
-              <Descriptions.Item label="订单号">{detail?.id ? `#${detail.id}` : '-'}</Descriptions.Item>
-              <Descriptions.Item label="关联方案">{detail?.planId ? `#${detail.planId}` : '-'}</Descriptions.Item>
-              <Descriptions.Item label="用户姓名">{detail?.userName || '-'}</Descriptions.Item>
-              <Descriptions.Item label="联系电话">{detail?.phone || '-'}</Descriptions.Item>
+              <Descriptions.Item label="订单号">{detail?.order_no ? `#${detail.order_no}` : '-'}</Descriptions.Item>
+              <Descriptions.Item label="关联方案">{detail?.plan_id ? `#${detail.plan_id}` : '-'}</Descriptions.Item>
+              <Descriptions.Item label="用户姓名">{detail?.user_name || '-'}</Descriptions.Item>
+              <Descriptions.Item label="联系电话">{detail?.contact_phone || '-'}</Descriptions.Item>
               <Descriptions.Item label="订单金额">
-                <span style={{ color: '#f5222d', fontWeight: 600 }}>¥{Number(detail?.totalAmount || 0).toLocaleString()}</span>
+                <span style={{ color: '#f5222d', fontWeight: 600 }}>¥{Number(detail?.actual_amount || 0).toLocaleString()}</span>
               </Descriptions.Item>
               <Descriptions.Item label="下单时间">
-                {detail?.createdAt ? dayjs(detail.createdAt).format('YYYY-MM-DD HH:mm:ss') : '-'}
+                {detail?.created_at ? dayjs(detail.created_at).format('YYYY-MM-DD HH:mm:ss') : '-'}
               </Descriptions.Item>
               <Descriptions.Item label="订单备注" span={2}>{detail?.remark || '-'}</Descriptions.Item>
             </Descriptions>
@@ -306,15 +305,15 @@ const OrderDetail = () => {
             <div className="detail-title">收货信息</div>
             <div className="detail-item">
               <div className="detail-label">收货人</div>
-              <div className="detail-value">{detail?.receiverName || detail?.userName || '-'}</div>
+              <div className="detail-value">{detail?.contact_name || detail?.user_name || '-'}</div>
             </div>
             <div className="detail-item">
               <div className="detail-label">联系电话</div>
-              <div className="detail-value">{detail?.receiverPhone || detail?.phone || '-'}</div>
+              <div className="detail-value">{detail?.contact_phone || '-'}</div>
             </div>
             <div className="detail-item">
               <div className="detail-label">收货地址</div>
-              <div className="detail-value">{detail?.address || '-'}</div>
+              <div className="detail-value">{detail?.delivery_address || '-'}</div>
             </div>
           </Card>
 
@@ -374,7 +373,7 @@ const OrderDetail = () => {
                   取消订单
                 </Button>
               )}
-              {canUpdateStatus && detail?.status === 'pending' && (
+              {canUpdateStatus && detail?.order_status === 'pending' && (
                 <Button
                   type="primary"
                   size="large"
@@ -382,7 +381,7 @@ const OrderDetail = () => {
                   loading={operating}
                   onClick={() => {
                     setOperating(true)
-                    orderAPI.updateOrderStatus(id, { status: 'confirmed' })
+                    orderAPI.updateOrderStatus(id, { order_status: 'processing' })
                       .then(res => {
                         if (res.code === 200) {
                           message.success('订单已确认')
@@ -396,14 +395,14 @@ const OrderDetail = () => {
                   确认订单
                 </Button>
               )}
-              {canUpdateStatus && detail?.status === 'confirmed' && (
+              {canUpdateStatus && detail?.order_status === 'confirmed' && (
                 <Button
                   type="primary"
                   size="large"
                   loading={operating}
                   onClick={() => {
                     setOperating(true)
-                    orderAPI.updateOrderStatus(id, { status: 'processing' })
+                    orderAPI.updateOrderStatus(id, { order_status: 'processing' })
                       .then(res => {
                         if (res.code === 200) {
                           message.success('开始处理')
@@ -417,14 +416,14 @@ const OrderDetail = () => {
                   开始处理
                 </Button>
               )}
-              {canUpdateStatus && detail?.status === 'processing' && (
+              {canUpdateStatus && detail?.order_status === 'processing' && (
                 <Button
                   type="primary"
                   size="large"
                   loading={operating}
                   onClick={() => {
                     setOperating(true)
-                    orderAPI.updateOrderStatus(id, { status: 'shipped' })
+                    orderAPI.updateOrderStatus(id, { order_status: 'shipped' })
                       .then(res => {
                         if (res.code === 200) {
                           message.success('已发货')
@@ -438,14 +437,14 @@ const OrderDetail = () => {
                   发货
                 </Button>
               )}
-              {canUpdateStatus && detail?.status === 'shipped' && (
+              {canUpdateStatus && detail?.order_status === 'shipped' && (
                 <Button
                   type="primary"
                   size="large"
                   loading={operating}
                   onClick={() => {
                     setOperating(true)
-                    orderAPI.updateOrderStatus(id, { status: 'delivered' })
+                    orderAPI.updateOrderStatus(id, { order_status: 'delivered' })
                       .then(res => {
                         if (res.code === 200) {
                           message.success('已送达')

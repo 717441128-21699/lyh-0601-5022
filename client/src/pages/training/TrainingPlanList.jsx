@@ -1,24 +1,14 @@
 import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Table, Button, Form, Select, DatePicker, Space, Tag, Input, message, Modal } from 'antd'
-import { SearchOutlined, PlusOutlined, EyeOutlined, EditOutlined, HistoryOutlined } from '@ant-design/icons'
+import { Table, Button, Form, Select, Space, Tag, Input, message, Modal } from 'antd'
+import { SearchOutlined, PlusOutlined, EyeOutlined, EditOutlined } from '@ant-design/icons'
 import { trainingAPI } from '../../services/api'
 import useUserStore from '../../store/useUserStore'
 import { TRAINING_PLAN_STATUS_MAP } from '../../utils/constants'
 import dayjs from 'dayjs'
 
-const { RangePicker } = DatePicker
 const { Option } = Select
 const { confirm } = Modal
-
-const TRAINING_TYPES = [
-  { value: 'strength', label: '力量训练' },
-  { value: 'endurance', label: '耐力训练' },
-  { value: 'flexibility', label: '柔韧性训练' },
-  { value: 'balance', label: '平衡训练' },
-  { value: 'coordination', label: '协调性训练' },
-  { value: 'rehabilitation', label: '康复训练' }
-]
 
 const TrainingPlanList = () => {
   const navigate = useNavigate()
@@ -62,11 +52,6 @@ const TrainingPlanList = () => {
     const values = form.getFieldsValue()
     const params = {}
     if (values.status) params.status = values.status
-    if (values.trainingType) params.trainingType = values.trainingType
-    if (values.dateRange && values.dateRange.length === 2) {
-      params.startDate = values.dateRange[0].format('YYYY-MM-DD')
-      params.endDate = values.dateRange[1].format('YYYY-MM-DD')
-    }
     if (values.keyword) params.keyword = values.keyword
     setPagination(prev => ({ ...prev, current: 1 }))
     fetchData(params)
@@ -85,7 +70,7 @@ const TrainingPlanList = () => {
   const handleUpdateStatus = (record, status, actionText) => {
     confirm({
       title: `确认${actionText}？`,
-      content: `计划名称：${record.name}`,
+      content: `计划名称：${record.plan_name}`,
       okText: `确认${actionText}`,
       cancelText: '取消',
       onOk: async () => {
@@ -108,43 +93,33 @@ const TrainingPlanList = () => {
   const columns = [
     {
       title: '计划名称',
-      dataIndex: 'name',
-      key: 'name',
+      dataIndex: 'plan_name',
+      key: 'plan_name',
       width: 180
     },
     {
       title: '用户',
-      dataIndex: 'userName',
-      key: 'userName',
+      dataIndex: 'user_name',
+      key: 'user_name',
       width: 120
     },
     {
       title: '康复师',
-      dataIndex: 'therapistName',
-      key: 'therapistName',
+      dataIndex: 'therapist_name',
+      key: 'therapist_name',
       width: 120
     },
     {
-      title: '训练类型',
-      dataIndex: 'trainingType',
-      key: 'trainingType',
-      width: 120,
-      render: (type) => {
-        const typeInfo = TRAINING_TYPES.find(t => t.value === type)
-        return typeInfo ? typeInfo.label : type || '-'
-      }
-    },
-    {
       title: '强度',
-      dataIndex: 'intensity',
-      key: 'intensity',
+      dataIndex: 'current_intensity',
+      key: 'current_intensity',
       width: 80,
       render: (val) => val ? `${val}/10` : '-'
     },
     {
       title: '频率',
-      dataIndex: 'frequency',
-      key: 'frequency',
+      dataIndex: 'current_frequency',
+      key: 'current_frequency',
       width: 100,
       render: (val) => val ? `${val}次/周` : '-'
     },
@@ -160,8 +135,8 @@ const TrainingPlanList = () => {
     },
     {
       title: '创建时间',
-      dataIndex: 'createdAt',
-      key: 'createdAt',
+      dataIndex: 'created_at',
+      key: 'created_at',
       width: 180,
       render: (text) => text ? dayjs(text).format('YYYY-MM-DD HH:mm') : '-'
     },
@@ -179,14 +154,6 @@ const TrainingPlanList = () => {
             onClick={() => navigate(`/training/plans/${record.id}`)}
           >
             查看详情
-          </Button>
-          <Button
-            type="link"
-            size="small"
-            icon={<HistoryOutlined />}
-            onClick={() => navigate(`/training/plans/${record.id}/records`)}
-          >
-            训练记录
           </Button>
           {canUpdateStatus && record.status === 'active' && (
             <Button
@@ -239,16 +206,6 @@ const TrainingPlanList = () => {
               ))}
             </Select>
           </Form.Item>
-          <Form.Item name="trainingType">
-            <Select placeholder="训练类型" allowClear style={{ width: 140 }}>
-              {TRAINING_TYPES.map(item => (
-                <Option key={item.value} value={item.value}>{item.label}</Option>
-              ))}
-            </Select>
-          </Form.Item>
-          <Form.Item name="dateRange">
-            <RangePicker style={{ width: 280 }} />
-          </Form.Item>
           <Form.Item>
             <Space>
               <Button type="primary" htmlType="submit" icon={<SearchOutlined />}>
@@ -260,7 +217,7 @@ const TrainingPlanList = () => {
         </Form>
 
         {canCreate && (
-          <Button type="primary" icon={<PlusOutlined />} onClick={() => navigate('/training/plans/create')}>
+          <Button type="primary" icon={<PlusOutlined />} onClick={() => navigate('/training/new')}>
             创建计划
           </Button>
         )}

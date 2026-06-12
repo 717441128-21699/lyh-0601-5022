@@ -1,13 +1,11 @@
 import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Table, Button, Form, Select, DatePicker, Space, Tag, Input, message, Modal } from 'antd'
+import { Table, Button, Form, Select, Space, Tag, Input, message, Modal } from 'antd'
 import { SearchOutlined, EyeOutlined, EditOutlined } from '@ant-design/icons'
 import { orderAPI } from '../../services/api'
 import useUserStore from '../../store/useUserStore'
 import { ORDER_STATUS_MAP, PAYMENT_STATUS_MAP } from '../../utils/constants'
-import dayjs from 'dayjs'
 
-const { RangePicker } = DatePicker
 const { Option } = Select
 const { confirm } = Modal
 
@@ -52,12 +50,7 @@ const OrderList = () => {
   const handleSearch = () => {
     const values = form.getFieldsValue()
     const params = {}
-    if (values.orderStatus) params.status = values.orderStatus
-    if (values.paymentStatus) params.paymentStatus = values.paymentStatus
-    if (values.dateRange && values.dateRange.length === 2) {
-      params.startDate = values.dateRange[0].format('YYYY-MM-DD')
-      params.endDate = values.dateRange[1].format('YYYY-MM-DD')
-    }
+    if (values.order_status) params.order_status = values.order_status
     if (values.keyword) params.keyword = values.keyword
     setPagination(prev => ({ ...prev, current: 1 }))
     fetchData(params)
@@ -73,15 +66,15 @@ const OrderList = () => {
     setPagination(prev => ({ ...prev, current: page, pageSize }))
   }
 
-  const handleUpdateStatus = (record, status, actionText) => {
+  const handleUpdateStatus = (record, order_status, actionText) => {
     confirm({
       title: `确认${actionText}？`,
-      content: `订单号：${record.id}`,
+      content: `订单号：${record.order_no}`,
       okText: `确认${actionText}`,
       cancelText: '取消',
       onOk: async () => {
         try {
-          const res = await orderAPI.updateOrderStatus(record.id, { status })
+          const res = await orderAPI.updateOrderStatus(record.id, { order_status })
           if (res.code === 200) {
             message.success(`订单${actionText}成功`)
             fetchData()
@@ -98,28 +91,28 @@ const OrderList = () => {
   const columns = [
     {
       title: '订单号',
-      dataIndex: 'id',
-      key: 'id',
+      dataIndex: 'order_no',
+      key: 'order_no',
       width: 120,
       render: (text) => text ? `#${text}` : '-'
     },
     {
       title: '用户',
-      dataIndex: 'userName',
-      key: 'userName',
+      dataIndex: 'user_name',
+      key: 'user_name',
       width: 120
     },
     {
       title: '总金额',
-      dataIndex: 'totalAmount',
-      key: 'totalAmount',
+      dataIndex: 'actual_amount',
+      key: 'actual_amount',
       width: 120,
       render: (text) => text ? `¥${Number(text).toLocaleString()}` : '-'
     },
     {
       title: '订单状态',
-      dataIndex: 'status',
-      key: 'status',
+      dataIndex: 'order_status',
+      key: 'order_status',
       width: 100,
       render: (status) => {
         const statusInfo = ORDER_STATUS_MAP[status] || { label: status, color: 'default' }
@@ -128,8 +121,8 @@ const OrderList = () => {
     },
     {
       title: '支付状态',
-      dataIndex: 'paymentStatus',
-      key: 'paymentStatus',
+      dataIndex: 'payment_status',
+      key: 'payment_status',
       width: 100,
       render: (status) => {
         const statusInfo = PAYMENT_STATUS_MAP[status] || { label: status, color: 'default' }
@@ -138,10 +131,10 @@ const OrderList = () => {
     },
     {
       title: '下单时间',
-      dataIndex: 'createdAt',
-      key: 'createdAt',
+      dataIndex: 'created_at',
+      key: 'created_at',
       width: 180,
-      render: (text) => text ? dayjs(text).format('YYYY-MM-DD HH:mm') : '-'
+      render: (text) => text ? new Date(text).toLocaleString('zh-CN') : '-'
     },
     {
       title: '操作',
@@ -158,17 +151,17 @@ const OrderList = () => {
           >
             查看详情
           </Button>
-          {canUpdateStatus && record.status === 'pending' && (
+          {canUpdateStatus && record.order_status === 'pending' && (
             <Button
               type="link"
               size="small"
               icon={<EditOutlined />}
-              onClick={() => handleUpdateStatus(record, 'confirmed', '确认')}
+              onClick={() => handleUpdateStatus(record, 'processing', '确认')}
             >
               确认订单
             </Button>
           )}
-          {canUpdateStatus && record.status === 'processing' && (
+          {canUpdateStatus && record.order_status === 'processing' && (
             <Button
               type="link"
               size="small"
@@ -178,7 +171,7 @@ const OrderList = () => {
               发货
             </Button>
           )}
-          {canUpdateStatus && record.status === 'shipped' && (
+          {canUpdateStatus && record.order_status === 'shipped' && (
             <Button
               type="link"
               size="small"
@@ -212,22 +205,12 @@ const OrderList = () => {
               style={{ width: 200 }}
             />
           </Form.Item>
-          <Form.Item name="orderStatus">
+          <Form.Item name="order_status">
             <Select placeholder="订单状态" allowClear style={{ width: 140 }}>
               {Object.entries(ORDER_STATUS_MAP).map(([key, value]) => (
                 <Option key={key} value={key}>{value.label}</Option>
               ))}
             </Select>
-          </Form.Item>
-          <Form.Item name="paymentStatus">
-            <Select placeholder="支付状态" allowClear style={{ width: 140 }}>
-              {Object.entries(PAYMENT_STATUS_MAP).map(([key, value]) => (
-                <Option key={key} value={key}>{value.label}</Option>
-              ))}
-            </Select>
-          </Form.Item>
-          <Form.Item name="dateRange">
-            <RangePicker style={{ width: 280 }} />
           </Form.Item>
           <Form.Item>
             <Space>

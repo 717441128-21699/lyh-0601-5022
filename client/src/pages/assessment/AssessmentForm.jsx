@@ -20,9 +20,19 @@ const AssessmentForm = () => {
   const handleSubmit = async (values) => {
     setLoading(true)
     try {
+      const bodyData = {
+        height: values.height,
+        weight: values.weight,
+        age: values.age,
+        gender: values.gender
+      }
       const res = await assessmentAPI.createAssessment({
-        ...values,
-        type: 'online'
+        disability_type: values.disabilityType,
+        disability_level: values.disabilityLevel,
+        body_data: bodyData,
+        daily_needs: values.dailyNeeds,
+        medical_history: values.medicalHistory,
+        living_environment: values.livingEnvironment
       })
       if (res.code === 200) {
         message.success('评估提交成功')
@@ -44,11 +54,16 @@ const AssessmentForm = () => {
     return '#ff4d4f'
   }
 
-  const recommendationDevices = recommendation?.devices || [
-    { id: 1, name: '智能轮椅 Pro', matchScore: 95, description: '电动智能轮椅，支持语音控制和自动导航', price: 12800, category: '轮椅' },
-    { id: 2, name: '助行器', matchScore: 88, description: '轻便折叠助行器，高度可调节', price: 680, category: '助行器具' },
-    { id: 3, name: '坐姿矫正坐垫', matchScore: 76, description: '记忆棉材质，有效改善坐姿', price: 299, category: '康复辅具' }
-  ]
+  const recommendationDevices = recommendation?.recommendations?.map((item, index) => ({
+    id: item.device?.id,
+    name: item.device?.name,
+    matchScore: item.score,
+    description: item.device?.description,
+    price: item.device?.price,
+    category: item.device?.category,
+    brand: item.device?.brand,
+    scoreDetails: item.details
+  })) || []
 
   if (showResult) {
     return (
@@ -79,9 +94,12 @@ const AssessmentForm = () => {
           <div style={{ marginBottom: 20 }}>
             <Space align="center">
               <ThunderboltOutlined style={{ fontSize: 24, color: '#faad14' }} />
-              <span style={{ fontSize: 16, fontWeight: 600 }}>综合匹配度</span>
-              <span style={{ fontSize: 28, fontWeight: 'bold', color: getScoreColor(recommendation?.overallScore || 85) }}>
-                {recommendation?.overallScore || 85}分
+              <span style={{ fontSize: 16, fontWeight: 600 }}>最高匹配度</span>
+              <span style={{ fontSize: 28, fontWeight: 'bold', color: getScoreColor(recommendationDevices[0]?.matchScore || 0) }}>
+                {recommendationDevices[0]?.matchScore || 0}分
+              </span>
+              <span style={{ color: '#666', marginLeft: 8 }}>
+                共匹配 {recommendation?.total_matches || 0} 款器具
               </span>
             </Space>
           </div>
