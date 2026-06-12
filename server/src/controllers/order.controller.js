@@ -114,6 +114,24 @@ async function updateOrderStatus(req, res) {
       return errorResponse(res, '权限不足', 403);
     }
 
+    if (req.user.role === 'disabled') {
+      if (!(order.order_status === 'delivered' && order_status === 'completed')) {
+        await connection.rollback();
+        return errorResponse(res, '权限不足', 403);
+      }
+    } else if (req.user.role === 'adapter') {
+      const allowedTransitions = {
+        pending: ['processing'],
+        processing: ['shipped'],
+        shipped: ['delivered']
+      };
+      const allowedStatuses = allowedTransitions[order.order_status] || [];
+      if (!allowedStatuses.includes(order_status)) {
+        await connection.rollback();
+        return errorResponse(res, '权限不足', 403);
+      }
+    }
+
     let updateSql = 'UPDATE orders SET order_status = ?';
     const updateParams = [order_status];
 
@@ -155,6 +173,10 @@ async function updateOrderStatus(req, res) {
 
     const notifyUserId = req.user.id === order.user_id ? order.adapter_id : order.user_id;
     await createNotification(notifyUserId, 'order', notificationTitle, notificationContent, 'order', id);
+
+    if (order_status === 'completed' && order.adapter_id) {
+      await createNotification(order.adapter_id, 'order', '订单已完成', `订单 ${order.order_no} 已完成`, 'order', id);
+    }
 
     await connection.commit();
 

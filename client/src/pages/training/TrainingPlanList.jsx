@@ -151,7 +151,7 @@ const TrainingPlanList = () => {
             type="link"
             size="small"
             icon={<EyeOutlined />}
-            onClick={() => navigate(`/training/plans/${record.id}`)}
+            onClick={() => navigate(`/training/${record.id}`)}
           >
             查看详情
           </Button>

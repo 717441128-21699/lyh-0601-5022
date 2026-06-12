@@ -13,7 +13,7 @@ const {
 router.get('/statistics/summary', authMiddleware, getOrderStatistics);
 router.get('/', authMiddleware, getOrders);
 router.get('/:id', authMiddleware, getOrderDetail);
-router.put('/:id/status', authMiddleware, roleMiddleware('adapter', 'admin'), updateOrderStatus);
+router.put('/:id/status', authMiddleware, roleMiddleware('disabled', 'adapter', 'admin'), updateOrderStatus);
 router.put('/:id/pay', authMiddleware, roleMiddleware('disabled', 'admin'), payOrder);
 router.get('/:id/items', authMiddleware, getOrderItems);
 

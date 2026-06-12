@@ -79,9 +79,40 @@ const OrderDetail = () => {
           if (res.code === 200) {
             message.success('支付成功')
             fetchDetail()
+          } else {
+            message.error(res.message || '支付失败')
           }
         } catch (error) {
-          console.error('支付失败:', error)
+          message.error(error?.response?.data?.message || error.message || '支付失败')
+        } finally {
+          setOperating(false)
+        }
+      }
+    })
+  }
+
+  const handleUpdateStatus = (order_status, actionText, needReload = false) => {
+    confirm({
+      title: `确认${actionText}？`,
+      content: `订单号：${detail?.order_no}`,
+      okText: `确认${actionText}`,
+      cancelText: '取消',
+      onOk: async () => {
+        setOperating(true)
+        try {
+          const res = await orderAPI.updateOrderStatus(id, { order_status })
+          if (res.code === 200) {
+            message.success(`${actionText}成功`)
+            if (needReload) {
+              window.location.reload()
+            } else {
+              fetchDetail()
+            }
+          } else {
+            message.error(res.message || `${actionText}失败`)
+          }
+        } catch (error) {
+          message.error(error?.response?.data?.message || error.message || `${actionText}失败`)
         } finally {
           setOperating(false)
         }
@@ -90,26 +121,7 @@ const OrderDetail = () => {
   }
 
   const handleConfirmReceive = () => {
-    confirm({
-      title: '确认收货？',
-      content: '请确认您已收到商品',
-      okText: '确认收货',
-      cancelText: '取消',
-      onOk: async () => {
-        setOperating(true)
-        try {
-          const res = await orderAPI.updateOrderStatus(id, { order_status: 'completed' })
-          if (res.code === 200) {
-            message.success('确认收货成功')
-            fetchDetail()
-          }
-        } catch (error) {
-          console.error('操作失败:', error)
-        } finally {
-          setOperating(false)
-        }
-      }
-    })
+    handleUpdateStatus('completed', '确认收货', true)
   }
 
   const handleCancel = () => {
@@ -126,9 +138,11 @@ const OrderDetail = () => {
           if (res.code === 200) {
             message.success('订单已取消')
             fetchDetail()
+          } else {
+            message.error(res.message || '取消订单失败')
           }
         } catch (error) {
-          console.error('取消订单失败:', error)
+          message.error(error?.response?.data?.message || error.message || '取消订单失败')
         } finally {
           setOperating(false)
         }
@@ -237,10 +251,12 @@ const OrderDetail = () => {
 
   const timelineItems = generateTimeline()
 
-  const canPay = user?.role === 'disabled' && (detail?.order_status === 'pending' || detail?.order_status === 'confirmed') && detail?.payment_status === 'unpaid'
-  const canCancel = (user?.role === 'disabled' || user?.role === 'admin') && (detail?.order_status === 'pending' || detail?.order_status === 'confirmed')
-  const canConfirmReceive = user?.role === 'disabled' && detail?.order_status === 'delivered'
-  const canUpdateStatus = user?.role === 'admin' || user?.role === 'finance' || user?.role === 'adapter'
+  const canPay = user?.role === 'disabled' && detail?.user_id === user?.id && (detail?.order_status === 'pending' || detail?.order_status === 'confirmed') && detail?.payment_status === 'unpaid'
+  const canConfirmOrder = (user?.role === 'adapter' && detail?.adapter_id === user?.id) || user?.role === 'admin' || user?.role === 'finance'
+  const canShipOrder = canConfirmOrder
+  const canConfirmDelivered = canConfirmOrder
+  const canConfirmReceive = user?.role === 'disabled' && detail?.user_id === user?.id && detail?.order_status === 'delivered'
+  const canCancel = (user?.role === 'disabled' && detail?.user_id === user?.id) || user?.role === 'admin'
 
   return (
     <div>
@@ -336,7 +352,7 @@ const OrderDetail = () => {
         </Col>
       </Row>
 
-      {(canPay || canCancel || canConfirmReceive || canUpdateStatus) && (
+      {(canPay || canCancel || canConfirmReceive || canConfirmOrder || canShipOrder || canConfirmDelivered) && (
         <Card className="detail-card">
           <div style={{ textAlign: 'center', padding: '12px 0' }}>
             <Space size="large">
@@ -351,7 +367,38 @@ const OrderDetail = () => {
                   立即支付
                 </Button>
               )}
-              {canConfirmReceive && (
+              {canConfirmOrder && detail?.order_status === 'pending' && (
+                <Button
+                  type="primary"
+                  size="large"
+                  icon={<ShoppingOutlined />}
+                  loading={operating}
+                  onClick={() => handleUpdateStatus('processing', '确认订单')}
+                >
+                  确认订单
+                </Button>
+              )}
+              {canShipOrder && detail?.order_status === 'processing' && (
+                <Button
+                  type="primary"
+                  size="large"
+                  loading={operating}
+                  onClick={() => handleUpdateStatus('shipped', '发货')}
+                >
+                  发货
+                </Button>
+              )}
+              {canConfirmDelivered && detail?.order_status === 'shipped' && (
+                <Button
+                  type="primary"
+                  size="large"
+                  loading={operating}
+                  onClick={() => handleUpdateStatus('delivered', '确认送达')}
+                >
+                  确认送达
+                </Button>
+              )}
+              {canConfirmReceive && detail?.order_status === 'delivered' && (
                 <Button
                   type="primary"
                   size="large"
@@ -371,91 +418,6 @@ const OrderDetail = () => {
                   onClick={handleCancel}
                 >
                   取消订单
-                </Button>
-              )}
-              {canUpdateStatus && detail?.order_status === 'pending' && (
-                <Button
-                  type="primary"
-                  size="large"
-                  icon={<ShoppingOutlined />}
-                  loading={operating}
-                  onClick={() => {
-                    setOperating(true)
-                    orderAPI.updateOrderStatus(id, { order_status: 'processing' })
-                      .then(res => {
-                        if (res.code === 200) {
-                          message.success('订单已确认')
-                          fetchDetail()
-                        }
-                      })
-                      .catch(err => console.error(err))
-                      .finally(() => setOperating(false))
-                  }}
-                >
-                  确认订单
-                </Button>
-              )}
-              {canUpdateStatus && detail?.order_status === 'confirmed' && (
-                <Button
-                  type="primary"
-                  size="large"
-                  loading={operating}
-                  onClick={() => {
-                    setOperating(true)
-                    orderAPI.updateOrderStatus(id, { order_status: 'processing' })
-                      .then(res => {
-                        if (res.code === 200) {
-                          message.success('开始处理')
-                          fetchDetail()
-                        }
-                      })
-                      .catch(err => console.error(err))
-                      .finally(() => setOperating(false))
-                  }}
-                >
-                  开始处理
-                </Button>
-              )}
-              {canUpdateStatus && detail?.order_status === 'processing' && (
-                <Button
-                  type="primary"
-                  size="large"
-                  loading={operating}
-                  onClick={() => {
-                    setOperating(true)
-                    orderAPI.updateOrderStatus(id, { order_status: 'shipped' })
-                      .then(res => {
-                        if (res.code === 200) {
-                          message.success('已发货')
-                          fetchDetail()
-                        }
-                      })
-                      .catch(err => console.error(err))
-                      .finally(() => setOperating(false))
-                  }}
-                >
-                  发货
-                </Button>
-              )}
-              {canUpdateStatus && detail?.order_status === 'shipped' && (
-                <Button
-                  type="primary"
-                  size="large"
-                  loading={operating}
-                  onClick={() => {
-                    setOperating(true)
-                    orderAPI.updateOrderStatus(id, { order_status: 'delivered' })
-                      .then(res => {
-                        if (res.code === 200) {
-                          message.success('已送达')
-                          fetchDetail()
-                        }
-                      })
-                      .catch(err => console.error(err))
-                      .finally(() => setOperating(false))
-                  }}
-                >
-                  确认送达
                 </Button>
               )}
             </Space>

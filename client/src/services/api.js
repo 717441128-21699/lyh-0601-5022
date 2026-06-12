@@ -80,7 +80,7 @@ export const planAPI = {
   getPlanDetail: (id) => request.get(`/plans/${id}`),
   updatePlan: (id, data) => request.put(`/plans/${id}`, data),
   updatePlanStatus: (id, data) => request.put(`/plans/${id}/status`, data),
-  generateOrder: (id) => request.post(`/plans/${id}/generate-order`)
+  generateOrder: (id, data) => request.post(`/plans/${id}/generate-order`, data)
 }
 
 export const orderAPI = {

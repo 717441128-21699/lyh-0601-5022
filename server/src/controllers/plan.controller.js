@@ -295,6 +295,11 @@ async function generateOrder(req, res) {
       return errorResponse(res, '权限不足', 403);
     }
 
+    if (req.user.role === 'adapter' && plan.adapter_id !== req.user.id) {
+      await connection.rollback();
+      return errorResponse(res, '权限不足', 403);
+    }
+
     if (plan.status !== 'confirmed') {
       await connection.rollback();
       return errorResponse(res, '只有已确认的方案才能生成订单');

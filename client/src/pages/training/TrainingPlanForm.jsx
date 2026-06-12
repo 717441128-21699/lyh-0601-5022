@@ -131,7 +131,11 @@ const TrainingPlanForm = () => {
         : await trainingAPI.createPlan(data)
       if (res.code === 200) {
         message.success(isEdit ? '训练计划更新成功' : '训练计划创建成功')
-        navigate('/training')
+        if (isEdit) {
+          navigate(`/training/${urlId}`)
+        } else {
+          navigate(`/training/${res.data?.id || res.data}`)
+        }
       }
     } catch (error) {
       console.error('提交训练计划失败:', error)

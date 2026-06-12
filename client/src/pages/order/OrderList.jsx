@@ -78,15 +78,15 @@ const OrderList = () => {
           if (res.code === 200) {
             message.success(`订单${actionText}成功`)
             fetchData()
+          } else {
+            message.error(res.message || `订单${actionText}失败`)
           }
         } catch (error) {
-          console.error('操作失败:', error)
+          message.error(error?.response?.data?.message || error.message || `订单${actionText}失败`)
         }
       }
     })
   }
-
-  const canUpdateStatus = user?.role === 'admin' || user?.role === 'finance' || user?.role === 'adapter'
 
   const columns = [
     {
@@ -141,48 +141,64 @@ const OrderList = () => {
       key: 'action',
       width: 200,
       fixed: 'right',
-      render: (_, record) => (
-        <Space size="small">
-          <Button
-            type="link"
-            size="small"
-            icon={<EyeOutlined />}
-            onClick={() => navigate(`/orders/${record.id}`)}
-          >
-            查看详情
-          </Button>
-          {canUpdateStatus && record.order_status === 'pending' && (
+      render: (_, record) => {
+        const canConfirmOrder = (user?.role === 'adapter' && record.adapter_id === user?.id) || user?.role === 'admin' || user?.role === 'finance'
+        const canShipOrder = canConfirmOrder
+        const canConfirmDelivered = canConfirmOrder
+        const canConfirmReceive = user?.role === 'disabled' && record.user_id === user?.id && record.order_status === 'delivered'
+        return (
+          <Space size="small">
             <Button
               type="link"
               size="small"
-              icon={<EditOutlined />}
-              onClick={() => handleUpdateStatus(record, 'processing', '确认')}
+              icon={<EyeOutlined />}
+              onClick={() => navigate(`/orders/${record.id}`)}
             >
-              确认订单
+              查看详情
             </Button>
-          )}
-          {canUpdateStatus && record.order_status === 'processing' && (
-            <Button
-              type="link"
-              size="small"
-              icon={<EditOutlined />}
-              onClick={() => handleUpdateStatus(record, 'shipped', '发货')}
-            >
-              发货
-            </Button>
-          )}
-          {canUpdateStatus && record.order_status === 'shipped' && (
-            <Button
-              type="link"
-              size="small"
-              icon={<EditOutlined />}
-              onClick={() => handleUpdateStatus(record, 'delivered', '送达')}
-            >
-              确认送达
-            </Button>
-          )}
-        </Space>
-      )
+            {canConfirmOrder && record.order_status === 'pending' && (
+              <Button
+                type="link"
+                size="small"
+                icon={<EditOutlined />}
+                onClick={() => handleUpdateStatus(record, 'processing', '确认订单')}
+              >
+                确认订单
+              </Button>
+            )}
+            {canShipOrder && record.order_status === 'processing' && (
+              <Button
+                type="link"
+                size="small"
+                icon={<EditOutlined />}
+                onClick={() => handleUpdateStatus(record, 'shipped', '发货')}
+              >
+                发货
+              </Button>
+            )}
+            {canConfirmDelivered && record.order_status === 'shipped' && (
+              <Button
+                type="link"
+                size="small"
+                icon={<EditOutlined />}
+                onClick={() => handleUpdateStatus(record, 'delivered', '确认送达')}
+              >
+                确认送达
+              </Button>
+            )}
+            {canConfirmReceive && record.order_status === 'delivered' && (
+              <Button
+                type="link"
+                size="small"
+                icon={<EditOutlined />}
+                onClick={() => handleUpdateStatus(record, 'completed', '确认收货')}
+              >
+                确认收货
+              </Button>
+            )}
+          </Space>
+        )
+      }
     }
   ]
 

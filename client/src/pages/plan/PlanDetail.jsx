@@ -8,10 +8,11 @@ import {
   message,
   Space,
   Table,
-  Divider,
   Row,
   Col,
-  Modal
+  Modal,
+  Form,
+  Input
 } from 'antd'
 import {
   ArrowLeftOutlined,
@@ -26,6 +27,7 @@ import { PLAN_STATUS_MAP } from '../../utils/constants'
 import dayjs from 'dayjs'
 
 const { confirm } = Modal
+const { TextArea } = Input
 
 const PlanDetail = () => {
   const { id } = useParams()
@@ -34,6 +36,8 @@ const PlanDetail = () => {
   const [loading, setLoading] = useState(false)
   const [detail, setDetail] = useState(null)
   const [operating, setOperating] = useState(false)
+  const [orderModalVisible, setOrderModalVisible] = useState(false)
+  const [orderForm] = Form.useForm()
 
   const fetchDetail = async () => {
     setLoading(true)
@@ -76,15 +80,32 @@ const PlanDetail = () => {
     })
   }
 
+  const handleShowOrderModal = () => {
+    setOrderModalVisible(true)
+  }
+
   const handleGenerateOrder = async () => {
-    setOperating(true)
     try {
-      const res = await planAPI.generateOrder(id)
+      const values = await orderForm.validateFields()
+      setOperating(true)
+      const res = await planAPI.generateOrder(id, values)
       if (res.code === 200) {
         message.success('订单生成成功')
+        setOrderModalVisible(false)
         navigate(`/orders/${res.data?.id}`)
       }
     } catch (error) {
+      if (error?.message) {
+        if (error.message.includes('已生成有效订单')) {
+          message.warning('该方案已生成有效订单，请勿重复操作')
+        } else if (error.message.includes('只有已确认的方案')) {
+          message.warning('只有已确认的方案才能生成订单')
+        } else if (error.message.includes('权限不足')) {
+          message.error('权限不足，您无法为此方案生成订单')
+        } else {
+          message.error(error.message || '生成订单失败')
+        }
+      }
       console.error('生成订单失败:', error)
     } finally {
       setOperating(false)
@@ -130,9 +151,13 @@ const PlanDetail = () => {
   const totalPrice = devices.reduce((sum, item) => sum + (item.unit_price * item.quantity), 0)
 
   const canEdit = (user?.role === 'adapter' || user?.role === 'admin') && ['draft', 'modified', 'rejected'].includes(detail?.status)
-  const canConfirm = user?.role === 'disabled' && ['draft', 'modified'].includes(detail?.status)
-  const canReject = user?.role === 'disabled' && ['draft', 'modified'].includes(detail?.status)
-  const canGenerateOrder = detail?.status === 'confirmed'
+  const canConfirm = user?.role === 'disabled' && detail?.user_id === user?.id && ['draft', 'modified'].includes(detail?.status)
+  const canReject = user?.role === 'disabled' && detail?.user_id === user?.id && ['draft', 'modified'].includes(detail?.status)
+  const canGenerateOrder = detail?.status === 'confirmed' && (
+    (user?.role === 'disabled' && detail?.user_id === user?.id) ||
+    (user?.role === 'adapter' && detail?.adapter_id === user?.id) ||
+    user?.role === 'admin'
+  )
 
   return (
     <div>
@@ -158,6 +183,7 @@ const PlanDetail = () => {
           <Descriptions.Item label="方案名称">{detail?.plan_name || '-'}</Descriptions.Item>
           <Descriptions.Item label="关联评估">{detail?.assessment_id ? `#${detail.assessment_id}` : '-'}</Descriptions.Item>
           <Descriptions.Item label="用户姓名">{detail?.user_name || '-'}</Descriptions.Item>
+          <Descriptions.Item label="适配师">{detail?.adapter_name || '-'}</Descriptions.Item>
           <Descriptions.Item label="器具数量">{devices.length}</Descriptions.Item>
           <Descriptions.Item label="总金额">
             <span style={{ color: '#f5222d', fontWeight: 600 }}>¥{totalPrice.toLocaleString()}</span>
@@ -255,7 +281,7 @@ const PlanDetail = () => {
                   size="large"
                   icon={<ShoppingCartOutlined />}
                   loading={operating}
-                  onClick={handleGenerateOrder}
+                  onClick={handleShowOrderModal}
                 >
                   生成订单
                 </Button>
@@ -264,6 +290,58 @@ const PlanDetail = () => {
           </div>
         </Card>
       )}
+
+      <Modal
+        title="填写收货信息"
+        open={orderModalVisible}
+        onOk={handleGenerateOrder}
+        onCancel={() => setOrderModalVisible(false)}
+        confirmLoading={operating}
+        okText="确认生成订单"
+        cancelText="取消"
+        width={500}
+      >
+        <Form
+          form={orderForm}
+          layout="vertical"
+          initialValues={{
+            contact_name: detail?.user_name || '',
+            contact_phone: detail?.user_phone || '',
+            delivery_address: ''
+          }}
+        >
+          <Form.Item
+            label="收货人姓名"
+            name="contact_name"
+            rules={[{ required: true, message: '请输入收货人姓名' }]}
+          >
+            <Input placeholder="请输入收货人姓名" maxLength={50} />
+          </Form.Item>
+          <Form.Item
+            label="联系电话"
+            name="contact_phone"
+            rules={[
+              { required: true, message: '请输入联系电话' },
+              { pattern: /^1[3-9]\d{9}$/, message: '请输入正确的手机号码' }
+            ]}
+          >
+            <Input placeholder="请输入联系电话" maxLength={11} />
+          </Form.Item>
+          <Form.Item
+            label="收货地址"
+            name="delivery_address"
+            rules={[{ required: true, message: '请输入收货地址' }]}
+          >
+            <TextArea rows={3} placeholder="请输入详细收货地址" maxLength={200} />
+          </Form.Item>
+          <Form.Item
+            label="备注"
+            name="remark"
+          >
+            <TextArea rows={2} placeholder="选填，其他说明" maxLength={200} />
+          </Form.Item>
+        </Form>
+      </Modal>
     </div>
   )
 }

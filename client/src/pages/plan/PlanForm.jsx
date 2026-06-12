@@ -44,11 +44,13 @@ const PlanForm = () => {
   const [deviceLoading, setDeviceLoading] = useState(false)
   const [assessmentInfo, setAssessmentInfo] = useState(null)
   const [categories, setCategories] = useState([])
+  const [assessments, setAssessments] = useState([])
+  const [selectedAssessmentId, setSelectedAssessmentId] = useState(null)
 
-  const fetchAssessmentInfo = async () => {
-    if (!assessmentId) return
+  const fetchAssessmentInfo = async (id) => {
+    if (!id) return
     try {
-      const res = await assessmentAPI.getAssessmentDetail(assessmentId)
+      const res = await assessmentAPI.getAssessmentDetail(id)
       if (res.code === 200) {
         setAssessmentInfo(res.data)
       }
@@ -57,17 +59,29 @@ const PlanForm = () => {
     }
   }
 
-  const fetchRecommendation = async () => {
-    if (!assessmentId || isEdit) return
+  const fetchAssessments = async () => {
+    if (isEdit) return
     try {
-      const res = await assessmentAPI.getRecommendation(assessmentId)
-      if (res.code === 200 && res.data?.devices) {
-        const recommendedDevices = res.data.devices.map(d => ({
-          device_id: d.device_id,
-          device_name: d.device_name,
-          quantity: d.quantity || 1,
-          unit_price: d.unit_price,
-          subtotal: d.subtotal || d.unit_price * (d.quantity || 1)
+      const res = await assessmentAPI.getAssessments({ status: 'completed' })
+      if (res.code === 200) {
+        setAssessments(res.data?.list || res.data || [])
+      }
+    } catch (error) {
+      console.error('获取评估列表失败:', error)
+    }
+  }
+
+  const fetchRecommendation = async (id) => {
+    if (!id || isEdit) return
+    try {
+      const res = await assessmentAPI.getRecommendation(id)
+      if (res.code === 200 && res.data?.recommendations) {
+        const recommendedDevices = res.data.recommendations.map(r => ({
+          device_id: r.device.id,
+          device_name: r.device.name,
+          quantity: 1,
+          unit_price: r.device.price,
+          subtotal: r.device.price
         }))
         setSelectedDevices(recommendedDevices)
       }
@@ -125,11 +139,22 @@ const PlanForm = () => {
   }
 
   useEffect(() => {
-    fetchAssessmentInfo()
+    fetchAssessments()
     fetchCategories()
     fetchPlanDetail()
-    fetchRecommendation()
+    if (assessmentId && !isEdit) {
+      setSelectedAssessmentId(assessmentId)
+      fetchAssessmentInfo(assessmentId)
+      fetchRecommendation(assessmentId)
+    }
   }, [id, assessmentId])
+
+  useEffect(() => {
+    if (selectedAssessmentId && !isEdit && !assessmentId) {
+      fetchAssessmentInfo(selectedAssessmentId)
+      fetchRecommendation(selectedAssessmentId)
+    }
+  }, [selectedAssessmentId])
 
   const totalPrice = selectedDevices.reduce((sum, item) => sum + (item.unit_price * (item.quantity || 1)), 0)
 
@@ -160,6 +185,10 @@ const PlanForm = () => {
   }
 
   const handleSubmit = async (values) => {
+    if (!isEdit && !selectedAssessmentId) {
+      message.warning('请先选择关联评估')
+      return
+    }
     if (selectedDevices.length === 0) {
       message.warning('请至少选择一个器具')
       return
@@ -167,7 +196,7 @@ const PlanForm = () => {
     setSubmitting(true)
     try {
       const data = {
-        assessment_id: assessmentId || assessmentInfo?.id,
+        assessment_id: selectedAssessmentId || assessmentInfo?.id,
         plan_name: values.plan_name,
         plan_description: values.plan_description,
         devices: selectedDevices.map(d => ({
@@ -187,7 +216,7 @@ const PlanForm = () => {
         : await planAPI.createPlan(data)
       if (res.code === 200) {
         message.success(isEdit ? '方案更新成功' : '方案创建成功')
-        const planId = res.data?.id || id
+        const planId = res.data?.id || res.data
         navigate(`/plans/${planId}`)
       }
     } catch (error) {
@@ -304,7 +333,7 @@ const PlanForm = () => {
 
       <div className="page-title">{isEdit ? '编辑适配方案' : '创建适配方案'}</div>
 
-      {assessmentInfo && (
+      {isEdit && assessmentInfo && (
         <Card className="detail-card" size="small" style={{ marginBottom: 16 }}>
           <Space size="large">
             <span><strong>关联评估：</strong>#{assessmentInfo.id}</span>
@@ -322,6 +351,37 @@ const PlanForm = () => {
           onFinish={handleSubmit}
         >
           <div className="detail-title">基本信息</div>
+
+          {!isEdit && (
+            <Form.Item
+              label="关联评估"
+              name="assessment_id"
+              rules={[{ required: true, message: '请选择关联评估' }]}
+            >
+              <Select
+                placeholder="请选择已完成的评估"
+                value={selectedAssessmentId}
+                onChange={(value) => setSelectedAssessmentId(value)}
+                showSearch
+                optionFilterProp="children"
+              >
+                {assessments.map(item => (
+                  <Option key={item.id} value={item.id}>
+                    #{item.id} - {item.user_name} - {item.disability_type}
+                  </Option>
+                ))}
+              </Select>
+            </Form.Item>
+          )}
+
+          {isEdit && assessmentInfo && (
+            <Form.Item label="关联评估">
+              <Input
+                value={`#${assessmentInfo.id} - ${assessmentInfo.userName || '-'} - ${assessmentInfo.disabilityType || '-'}`}
+                disabled
+              />
+            </Form.Item>
+          )}
 
           <Form.Item
             label="方案名称"
@@ -352,6 +412,7 @@ const PlanForm = () => {
                   fetchDeviceList()
                   setDeviceModalVisible(true)
                 }}
+                disabled={!isEdit && !selectedAssessmentId}
               >
                 从设备库选择
               </Button>
@@ -418,7 +479,7 @@ const PlanForm = () => {
               <Button size="large" onClick={() => navigate('/plans')}>
                 取消
               </Button>
-              <Button type="primary" size="large" htmlType="submit" loading={submitting} icon={<SaveOutlined />}>
+              <Button type="primary" size="large" htmlType="submit" loading={submitting} icon={<SaveOutlined />} disabled={!isEdit && !selectedAssessmentId}>
                 {isEdit ? '保存修改' : '创建方案'}
               </Button>
             </Space>

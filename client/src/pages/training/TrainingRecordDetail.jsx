@@ -72,7 +72,7 @@ const TrainingRecordDetail = () => {
     <div>
       <Button
         icon={<ArrowLeftOutlined />}
-        onClick={() => navigate(-1)}
+        onClick={() => navigate(`/training/${detail?.plan_id}`)}
         style={{ marginBottom: 20 }}
       >
         返回

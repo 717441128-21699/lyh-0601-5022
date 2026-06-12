@@ -15,6 +15,6 @@ router.get('/', authMiddleware, getPlans);
 router.get('/:id', authMiddleware, getPlanDetail);
 router.put('/:id', authMiddleware, roleMiddleware('adapter', 'admin'), updatePlan);
 router.put('/:id/status', authMiddleware, roleMiddleware('disabled', 'admin'), updatePlanStatus);
-router.post('/:id/generate-order', authMiddleware, roleMiddleware('disabled', 'admin'), generateOrder);
+router.post('/:id/generate-order', authMiddleware, roleMiddleware('disabled', 'adapter', 'admin'), generateOrder);
 
 module.exports = router;

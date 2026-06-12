@@ -143,7 +143,7 @@ const TrainingRecordForm = () => {
     <div className="form-container">
       <Button
         icon={<ArrowLeftOutlined />}
-        onClick={() => navigate(-1)}
+        onClick={() => navigate(`/training/${planId}`)}
         style={{ marginBottom: 20 }}
       >
         返回
