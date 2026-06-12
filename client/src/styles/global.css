@@ -1,0 +1,256 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  background-color: #f0f2f5;
+  color: #333;
+}
+
+#root {
+  min-height: 100vh;
+}
+
+.login-container {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+.login-box {
+  width: 420px;
+  padding: 40px;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+}
+
+.login-title {
+  text-align: center;
+  margin-bottom: 32px;
+}
+
+.login-title h2 {
+  font-size: 24px;
+  color: #1a1a2e;
+  margin-bottom: 8px;
+}
+
+.login-title p {
+  color: #666;
+  font-size: 14px;
+}
+
+.layout {
+  min-height: 100vh;
+}
+
+.sider-logo {
+  height: 64px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 16px;
+  font-weight: bold;
+  background: rgba(255, 255, 255, 0.1);
+  margin-bottom: 16px;
+}
+
+.header {
+  background: white;
+  padding: 0 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+}
+
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.content {
+  margin: 24px;
+  padding: 24px;
+  background: white;
+  border-radius: 8px;
+  min-height: calc(100vh - 112px);
+}
+
+.stat-card {
+  text-align: center;
+  padding: 24px;
+  border-radius: 8px;
+  background: white;
+  border: 1px solid #f0f0f0;
+}
+
+.stat-card .stat-value {
+  font-size: 32px;
+  font-weight: bold;
+  color: #1890ff;
+  margin-bottom: 8px;
+}
+
+.stat-card .stat-label {
+  color: #666;
+  font-size: 14px;
+}
+
+.page-title {
+  font-size: 20px;
+  font-weight: 600;
+  margin-bottom: 20px;
+  color: #1a1a2e;
+}
+
+.toolbar {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.table-container {
+  background: white;
+  border-radius: 8px;
+}
+
+.form-container {
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.detail-card {
+  background: white;
+  border-radius: 8px;
+  padding: 24px;
+  margin-bottom: 16px;
+}
+
+.detail-title {
+  font-size: 16px;
+  font-weight: 600;
+  margin-bottom: 16px;
+  color: #1a1a2e;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.detail-item {
+  display: flex;
+  padding: 8px 0;
+  border-bottom: 1px dashed #f0f0f0;
+}
+
+.detail-label {
+  width: 120px;
+  color: #666;
+  flex-shrink: 0;
+}
+
+.detail-value {
+  flex: 1;
+  color: #333;
+}
+
+.empty-state {
+  text-align: center;
+  padding: 60px 20px;
+  color: #999;
+}
+
+.tag-status {
+  margin-right: 8px;
+}
+
+.welcome-banner {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  padding: 32px;
+  border-radius: 12px;
+  margin-bottom: 24px;
+}
+
+.welcome-banner h1 {
+  color: white;
+  font-size: 28px;
+  margin-bottom: 8px;
+}
+
+.welcome-banner p {
+  opacity: 0.9;
+  font-size: 14px;
+}
+
+.dashboard-grid {
+  margin-bottom: 24px;
+}
+
+.chart-card {
+  background: white;
+  border-radius: 8px;
+  padding: 20px;
+  height: 100%;
+}
+
+.chart-title {
+  font-size: 16px;
+  font-weight: 600;
+  margin-bottom: 16px;
+  color: #1a1a2e;
+}
+
+.recommendation-item {
+  padding: 16px;
+  border: 1px solid #e8e8e8;
+  border-radius: 8px;
+  margin-bottom: 12px;
+  display: flex;
+  gap: 16px;
+  align-items: center;
+}
+
+.recommendation-score {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #52c41a, #1890ff);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  font-weight: bold;
+  flex-shrink: 0;
+}
+
+.recommendation-info {
+  flex: 1;
+}
+
+.recommendation-name {
+  font-size: 16px;
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+.recommendation-desc {
+  color: #666;
+  font-size: 13px;
+}
+
+.recommendation-price {
+  color: #f5222d;
+  font-size: 18px;
+  font-weight: bold;
+}
